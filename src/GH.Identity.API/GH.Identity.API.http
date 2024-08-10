@@ -1,0 +1,6 @@
+@GH.Identity.API_HostAddress = http://localhost:5293
+
+GET {{GH.Identity.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
