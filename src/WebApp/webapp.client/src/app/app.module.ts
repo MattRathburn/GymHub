@@ -10,6 +10,15 @@ import { UserSessionComponent } from './user-session/user-session.component';
 import { TodosComponent } from './todos/todos.component';
 import { CsrfHeaderInterceptor } from './csrf-header.interceptor';
 import { FormsModule } from '@angular/forms';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatButtonModule } from '@angular/material/button';
+import { DashboardComponent } from './dashboard/dashboard.component';
+import { TrainingJournalComponent } from './training-journal/training-journal.component';
+import { ProfileComponent } from './profile/profile.component';
+import { AccountComponent } from './account/account.component';
+import { ProgramShopComponent } from './program-shop/program-shop.component';
+import { SupportComponent } from './support/support.component';
 
 @NgModule({
   declarations: [
@@ -17,13 +26,21 @@ import { FormsModule } from '@angular/forms';
     HomeComponent,
     NavMenuComponent,
     UserSessionComponent,
-    TodosComponent
+    TodosComponent,
+    DashboardComponent,
+    TrainingJournalComponent,
+    ProfileComponent,
+    AccountComponent,
+    ProgramShopComponent,
+    SupportComponent,
   ],
   imports: [
     BrowserModule.withServerTransition({ appId: 'ng-cli-universal' }),
     HttpClientModule,
     FormsModule,
-    AppRoutingModule
+    AppRoutingModule,
+    MatToolbarModule,
+    MatButtonModule,
   ],
   providers: [
     {
@@ -31,6 +48,7 @@ import { FormsModule } from '@angular/forms';
       useClass: CsrfHeaderInterceptor,
       multi: true,
     },
+    provideAnimationsAsync(),
   ],
   bootstrap: [AppComponent]
 })

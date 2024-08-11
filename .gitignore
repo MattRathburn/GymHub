@@ -264,3 +264,4 @@ FakesAssemblies/
 *.opt
 
 tempkey.jwk
+appsettings.Development.json

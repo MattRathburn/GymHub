@@ -108,14 +108,14 @@ public class Config
                     AllowedGrantTypes = GrantTypes.Code,
                     
                     // where to redirect to after login
-                    // RedirectUris = { "https://localhost:4200/signin-oidc" },
+                    RedirectUris = { "https://localhost:4200/signin-oidc" },
 
                     // where to redirect to after logout
-                    // PostLogoutRedirectUris = { "https://localhost:4200/signout-callback-oidc" },
+                    PostLogoutRedirectUris = { "https://localhost:4200/signout-callback-oidc" },
 
-                    RedirectUris = { "https://127.0.0.1:4200/signin-oidc" },
+                    // RedirectUris = { "https://127.0.0.1:4200/signin-oidc" },
 
-                    PostLogoutRedirectUris = { "https://127.0.0.1:4200/signout-callback-oidc" },
+                    // PostLogoutRedirectUris = { "https://127.0.0.1:4200/signout-callback-oidc" },
 
                     AllowOfflineAccess = true,
 

@@ -1,6 +1,9 @@
 import { Component } from '@angular/core';
 import { AuthenticationService } from '../authentication.service';
 
+import { MatToolbar } from '@angular/material/toolbar';
+import { MatButtonModule } from '@angular/material/button';
+
 @Component({
   selector: 'app-nav-menu',
   templateUrl: './nav-menu.component.html',

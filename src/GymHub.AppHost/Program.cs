@@ -44,7 +44,8 @@ builder.AddProject<Projects.GH_Identity_API>("gh-identity-api")
     .WithExternalHttpEndpoints()
     .WithReference(identityDb);
 
-builder.AddProject<Projects.Todo_API>("todo-api");
+builder.AddProject<Projects.Todo_API>("todo-api")
+    .WithExternalHttpEndpoints();
 
 builder.Build().Run();
 
