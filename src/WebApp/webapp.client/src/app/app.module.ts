@@ -1,6 +1,6 @@
-import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, provideHttpClient } from '@angular/common/http';
 import { NgModule } from '@angular/core';
-import { BrowserModule } from '@angular/platform-browser';
+// import { BrowserModule } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -35,14 +35,14 @@ import { SupportComponent } from './support/support.component';
     SupportComponent,
   ],
   imports: [
-    BrowserModule.withServerTransition({ appId: 'ng-cli-universal' }),
-    HttpClientModule,
+    // BrowserModule.withServerTransition({ appId: 'ng-cli-universal' }),
     FormsModule,
     AppRoutingModule,
     MatToolbarModule,
     MatButtonModule,
   ],
   providers: [
+    provideHttpClient(),
     {
       provide: HTTP_INTERCEPTORS,
       useClass: CsrfHeaderInterceptor,

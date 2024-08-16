@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GH.Identity.API\GH.Identity.API.csproj" />
+    <ProjectReference Include="..\GH.Program.API\GH.Program.API.csproj" />
     <ProjectReference Include="..\Todo.API\Todo.API.csproj" />
     <ProjectReference Include="..\WebApp\WebApp.Server\WebApp.Server.csproj" />
   </ItemGroup>
