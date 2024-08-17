@@ -9,6 +9,8 @@ public class ProgramDbContext : DbContext
     { }
 
     public DbSet<GHProgram> GHPrograms { get; set; }
+    public DbSet<ProgramComponents> ProgramComponents { get; set; }
+    public DbSet<ProgramCreator> ProgramCreators { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -1,44 +1,22 @@
 using GH.Program.API.Endpoints;
+using GH.Program.API.Extensions;
+using GymHub.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+builder.AddApplicationServices();
+builder.Services.AddProblemDetails();
 
-// Add services to the container.
+var withApiVersioning = builder.Services.AddApiVersioning();
 
-builder.Services.AddAuthentication()
-    .AddJwtBearer(options =>
-    {
-        options.Authority = "https://localhost:7258";
-        options.Audience = "ProgramAPI";
-        options.MapInboundClaims = true;
-
-        // audience is optional, make sure you read the following paragraphs
-        // to understand your options
-        options.TokenValidationParameters.ValidateAudience = false;
-
-        // it's recommended to check the type header to avoid "JWT confusion" attacks
-        options.TokenValidationParameters.ValidTypes = new[] { "at+jwt" };
-    });
-
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("ApiScope", policy =>
-    {
-        policy.RequireAuthenticatedUser();
-        policy.RequireClaim("scope", "ProgramAPI");
-    });
-});
+builder.AddDefaultOpenApi(withApiVersioning);
 
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
-// Configure the HTTP request pipeline.
-
-app.UseHttpsRedirection();
-
-app.MapGroup("/programs")
+app.NewVersionedApi("Program")
     .MapProgramAPIv1();
 
 app.Run();

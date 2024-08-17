@@ -2,6 +2,7 @@ using GH.Identity.API.Data;
 using GH.Identity.API.Extensions;
 using GH.Identity.API.Models;
 using Microsoft.AspNetCore.Identity;
+using System.Data.Common;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,9 @@ builder.AddServiceDefaults();
 builder.Services.AddControllersWithViews();
 
 // builder.AddNpgsqlDbContext<ApplicationDbContext>("IdentityDb");
+
+var migrationsAssembly = typeof(Program).Assembly.GetName().Name;
+string connectionString = builder.Configuration.GetConnectionString("IdentityDB");
 
 builder.AddSqlServerDbContext<ApplicationDbContext>("identitydb");
 
@@ -23,7 +27,6 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 
 builder.Services.AddIdentityServer(options =>
 {
-    options.IssuerUri = "null";
     options.Authentication.CookieLifetime = TimeSpan.FromHours(2);
 
     options.Events.RaiseErrorEvents = true;
@@ -34,10 +37,16 @@ builder.Services.AddIdentityServer(options =>
     // TODO: Remove this line in production.
     options.KeyManagement.Enabled = false;
 })
-.AddInMemoryIdentityResources(Config.GetResources())
-.AddInMemoryApiScopes(Config.GetApiScopes())
-.AddInMemoryApiResources(Config.GetApis())
-.AddInMemoryClients(Config.GetClients(builder.Configuration))
+.AddConfigurationStore(options =>
+{
+    options.ConfigureDbContext = b => b.UseSqlServer(connectionString,
+        sql => sql.MigrationsAssembly(migrationsAssembly));
+})
+.AddOperationalStore(options =>
+{
+    options.ConfigureDbContext = b => b.UseSqlServer(connectionString,
+        sql => sql.MigrationsAssembly(migrationsAssembly));
+})
 .AddAspNetIdentity<ApplicationUser>()
 // TODO: Not recommended for production - you need to store your key material somewhere secure
 .AddDeveloperSigningCredential();

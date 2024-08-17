@@ -12,7 +12,8 @@ public class Config
     {
         return new List<ApiResource>
             {
-                new ApiResource("todos", "Todos")
+                new ApiResource("todos", "Todos"),
+                new ApiResource("program", "Program")
             };
     }
 
@@ -22,7 +23,8 @@ public class Config
     {
         return new List<ApiScope>
             {
-                new ApiScope("TodoAPI", "Todo API")
+                new ApiScope("TodoAPI", "Todo API"),
+                new ApiScope("ProgramAPI", "Program API")
             };
     }
 
@@ -113,10 +115,6 @@ public class Config
                     // where to redirect to after logout
                     PostLogoutRedirectUris = { "https://localhost:4200/signout-callback-oidc" },
 
-                    // RedirectUris = { "https://127.0.0.1:4200/signin-oidc" },
-
-                    // PostLogoutRedirectUris = { "https://127.0.0.1:4200/signout-callback-oidc" },
-
                     AllowOfflineAccess = true,
 
                     AllowedScopes =
@@ -125,6 +123,7 @@ public class Config
                         IdentityServerConstants.StandardScopes.Profile,
                         "verification",
                         "TodoAPI",
+                        "ProgramAPI",
                         "offline_access"
                     }
                 },
@@ -149,7 +148,8 @@ public class Config
                         IdentityServerConstants.StandardScopes.OpenId,
                         IdentityServerConstants.StandardScopes.Profile,
                         "verification",
-                        "TodoAPI"
+                        "TodoAPI",
+                        "ProgramAPI"
                     }
                 }
             };
