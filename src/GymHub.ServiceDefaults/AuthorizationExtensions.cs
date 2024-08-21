@@ -30,7 +30,8 @@ public static class AuthorizationExtensions
             options.AddPolicy(scope, policy =>
             {
                 var claimType = identitySection.GetRequiredValue("ClaimType");
-                var allowedValues = identitySection.GetRequiredValue("AllowedValues");
+                var allowedValuesSection = configuration.GetSection("Identity:AllowedValues");
+                var allowedValues = allowedValuesSection?.Get<string[]>();
 
                 policy.RequireAuthenticatedUser();
                 policy.RequireClaim(claimType, allowedValues);

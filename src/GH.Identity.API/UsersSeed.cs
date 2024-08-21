@@ -1,9 +1,4 @@
-﻿using GH.Identity.API.Data;
-using GH.Identity.API.Extensions;
-using GH.Identity.API.Models;
-using Microsoft.AspNetCore.Identity;
-
-public class UsersSeed(ILogger<UsersSeed> logger, UserManager<ApplicationUser> userManager) : IDbSeeder<ApplicationDbContext>
+﻿public class UsersSeed(ILogger<UsersSeed> logger, UserManager<ApplicationUser> userManager) : IDbSeeder<ApplicationDbContext>
 {
     public async Task SeedAsync(ApplicationDbContext context)
     {
@@ -38,6 +33,16 @@ public class UsersSeed(ILogger<UsersSeed> logger, UserManager<ApplicationUser> u
             {
                 logger.LogDebug("alice created");
             }
+
+            result = userManager.AddClaimsAsync(alice, new Claim[]
+            {
+                new Claim(JwtClaimTypes.Name, "Alice Smith"),
+                new Claim(JwtClaimTypes.GivenName, "Alice"),
+                new Claim(JwtClaimTypes.FamilyName, "Smith")
+            }).Result;
+
+            if (!result.Succeeded)
+                throw new Exception(result.Errors.First().Description);
         }
         else
         {
@@ -78,6 +83,16 @@ public class UsersSeed(ILogger<UsersSeed> logger, UserManager<ApplicationUser> u
             {
                 logger.LogDebug("bob created");
             }
+
+            result = userManager.AddClaimsAsync(bob, new Claim[]
+            {
+                new Claim(JwtClaimTypes.Name, "Bob Smith"),
+                new Claim(JwtClaimTypes.GivenName, "Bob"),
+                new Claim(JwtClaimTypes.FamilyName, "Smith")
+            }).Result;
+
+            if (!result.Succeeded)
+                throw new Exception(result.Errors.First().Description);
         }
         else
         {

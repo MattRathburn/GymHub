@@ -4,11 +4,12 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddForwardedHeaders();
 
-var postgres = builder.AddPostgres("postgres")
-    .WithImage("ankane/pgvector")
-    .WithImageTag("latest");
+//var postgres = builder.AddPostgres("postgres")
+//    .WithImage("ankane/pgvector")
+//    .WithImageTag("latest");
 
-var sqlserver = builder.AddSqlServer("sqldb");
+var sqlserver = builder.AddSqlServer("sqldb")
+    .WithDataVolume("sqldb-volume");
 
 var identityDb = sqlserver.AddDatabase("identitydb");
 
@@ -23,6 +24,6 @@ builder.AddProject<Projects.Todo_API>("todo-api")
 
 builder.AddProject<Projects.GH_Program_API>("gh-program-api")
     .WithExternalHttpEndpoints()
-    .WithReference(postgres);
+    .WithReference(identityDb);
 
 builder.Build().Run();

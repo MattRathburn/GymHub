@@ -25,4 +25,8 @@
     <ProjectReference Include="..\WebApp\WebApp.Server\WebApp.Server.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="sql-server\" />
+  </ItemGroup>
+
 </Project>

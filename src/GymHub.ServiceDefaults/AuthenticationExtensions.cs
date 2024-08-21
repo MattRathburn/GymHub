@@ -15,7 +15,7 @@ public static class AuthenticationExtensions
         // {
         //   "Identity": {
         //     "Url": "http://identity",
-        //     "Audience": "basket"
+        //     "Audience": "program"
         //    }
         // }
 
@@ -53,7 +53,7 @@ public static class AuthenticationExtensions
             options.TokenValidationParameters.ValidTypes = new[] { "at+jwt" };
         });
 
-        services.AddAuthorization();
+        //services.AddAuthorization();
 
         return services;
     }

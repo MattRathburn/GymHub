@@ -85,37 +85,24 @@ public class Config
                     AccessTokenLifetime = 60*60*2, // 2 hours
                     IdentityTokenLifetime= 60*60*2 // 2 hours
                 },
-                new Client
-                {
-                    ClientId = "client",
-
-                    // no interactive user, use the clientid/secret for authentication
-                    AllowedGrantTypes = GrantTypes.ClientCredentials,
-
-                    // secret for authentication
-                    ClientSecrets =
-                    {
-                        new Secret("secret".Sha256())
-                    },
-
-                    // scopes that client has access to
-                    AllowedScopes = { "TodoAPI" }
-                },
                 // interactive ASP.NET Core Web App
                 new Client
                 {
                     ClientId = "web",
+                    ClientName = "Web Client",
                     ClientSecrets = { new Secret("secret".Sha256()) },
-
+                    ClientUri = $"{configuration["WebAppClient"]}",
                     AllowedGrantTypes = GrantTypes.Code,
-                    
+                    AllowAccessTokensViaBrowser = false,
+                    RequireConsent = false,
+                    AllowOfflineAccess = true,
+                    AlwaysIncludeUserClaimsInIdToken = true,
+                    RequirePkce = false,
                     // where to redirect to after login
-                    RedirectUris = { "https://localhost:4200/signin-oidc" },
+                    RedirectUris = { $"{configuration["WebAppClient"]}/signin-oidc" },
 
                     // where to redirect to after logout
-                    PostLogoutRedirectUris = { "https://localhost:4200/signout-callback-oidc" },
-
-                    AllowOfflineAccess = true,
+                    PostLogoutRedirectUris = { $"{configuration["WebAppClient"]}/signout-callback-oidc" },
 
                     AllowedScopes =
                     {
@@ -125,7 +112,9 @@ public class Config
                         "TodoAPI",
                         "ProgramAPI",
                         "offline_access"
-                    }
+                    },
+                    AccessTokenLifetime = 60*60*2, // 2 hours
+                    IdentityTokenLifetime= 60*60*2 // 2 hours
                 },
 
                 new Client
@@ -136,10 +125,10 @@ public class Config
                     AllowedGrantTypes = GrantTypes.Code,
                     
                     // where to redirect to after login
-                    RedirectUris = { "https://localhost:4200/signin-oidc" },
+                    RedirectUris = { $"{configuration["WebAppClient"]}/signin-oidc" },
 
                     // where to redirect to after logout
-                    PostLogoutRedirectUris = { "https://localhost:4200/signout-callback-oidc" },
+                    PostLogoutRedirectUris = { $"{configuration["WebAppClient"]}/signout-callback-oidc" },
 
                     AllowOfflineAccess = true,
 

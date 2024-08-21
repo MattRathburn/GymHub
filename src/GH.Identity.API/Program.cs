@@ -1,8 +1,8 @@
-using GH.Identity.API.Data;
-using GH.Identity.API.Extensions;
-using GH.Identity.API.Models;
-using Microsoft.AspNetCore.Identity;
-using System.Data.Common;
+
+using Duende.IdentityServer.EntityFramework.DbContexts;
+using Duende.IdentityServer.Test;
+using GH.Identity.API;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,13 +13,16 @@ builder.Services.AddControllersWithViews();
 // builder.AddNpgsqlDbContext<ApplicationDbContext>("IdentityDb");
 
 var migrationsAssembly = typeof(Program).Assembly.GetName().Name;
-string connectionString = builder.Configuration.GetConnectionString("IdentityDB");
+string connectionString = builder.Configuration.GetConnectionString("identitydb");
 
 builder.AddSqlServerDbContext<ApplicationDbContext>("identitydb");
 
 
 // Replace this with manual migrations.  Perhaps DBUp?
 builder.Services.AddMigration<ApplicationDbContext, UsersSeed>();
+builder.Services.AddMigration<PersistedGrantDbContext>();
+builder.Services.AddMigration<ConfigurationDbContext>();
+
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -39,7 +42,7 @@ builder.Services.AddIdentityServer(options =>
 })
 .AddConfigurationStore(options =>
 {
-    options.ConfigureDbContext = b => b.UseSqlServer(connectionString,
+    options.ConfigureDbContext = b => b.UseSqlServer(connectionString, 
         sql => sql.MigrationsAssembly(migrationsAssembly));
 })
 .AddOperationalStore(options =>
@@ -56,6 +59,8 @@ builder.Services.AddTransient<ILoginService<ApplicationUser>, EFLoginService>();
 builder.Services.AddTransient<IRedirectService, RedirectService>();
 
 var app = builder.Build();
+
+HostingExtensions.InitializeDatabase(app, app.Configuration);
 
 app.MapDefaultEndpoints();
 
