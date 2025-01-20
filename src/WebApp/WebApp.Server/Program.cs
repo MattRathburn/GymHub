@@ -37,7 +37,7 @@ public class Program
             options.Scope.Clear();
             options.Scope.Add("openid");
             options.Scope.Add("profile");
-            options.Scope.Add("TodoAPI");
+            //options.Scope.Add("TodoAPI");
             options.Scope.Add("offline_access");
 
             options.TokenValidationParameters = new()

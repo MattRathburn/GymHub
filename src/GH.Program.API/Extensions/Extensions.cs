@@ -9,10 +9,7 @@ public static class Extensions
     {
         builder.AddNpgsqlDbContext<ProgramDbContext>("programdb", configureDbContextOptions: dbContextOptionsBuilder =>
         {
-            dbContextOptionsBuilder.UseNpgsql(builder =>
-            {
-                builder.UseVector();
-            });
+            dbContextOptionsBuilder.UseNpgsql();
         });
 
         builder.Services.AddAuthentication()

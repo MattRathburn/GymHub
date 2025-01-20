@@ -14,8 +14,6 @@ public class ProgramDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasPostgresExtension("vector");
-
         base.OnModelCreating(modelBuilder);
     }
 }
