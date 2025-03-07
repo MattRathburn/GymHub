@@ -9,6 +9,9 @@ public static class HostingExtensions
     {
         using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>()!.CreateScope())
         {
+            var connectionString = configuration.GetConnectionString("IdentityDB");
+            Console.WriteLine($"Connection String: {connectionString}");
+
             serviceScope.ServiceProvider.GetRequiredService<PersistedGrantDbContext>().Database.Migrate();
 
             var context = serviceScope.ServiceProvider.GetRequiredService<ConfigurationDbContext>();

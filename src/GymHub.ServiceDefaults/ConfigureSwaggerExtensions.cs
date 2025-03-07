@@ -145,7 +145,7 @@ internal sealed class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOpti
         // }
 
         var identityUrlExternal = identitySection.GetRequiredValue("Url");
-        var scopes = identitySection.GetRequiredSection("Scopes").GetChildren().ToDictionary(p => p.Key, p => p.Value);
+        var scopes = identitySection.GetRequiredSection("scope").GetChildren().ToDictionary(p => p.Key, p => p.Value);
 
         options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
         {

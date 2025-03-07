@@ -14,7 +14,7 @@ global using Duende.IdentityServer.Models;
 global using Duende.IdentityServer.Services;
 global using Duende.IdentityServer.Stores;
 global using Duende.IdentityServer.Validation;
-global using IdentityModel;
+global using Duende.IdentityModel;
 global using Microsoft.AspNetCore.Authentication;
 global using Microsoft.AspNetCore.Authorization;
 global using Microsoft.AspNetCore.Builder;

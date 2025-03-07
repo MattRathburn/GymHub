@@ -10,13 +10,17 @@ builder.AddServiceDefaults();
 
 builder.Services.AddControllersWithViews();
 
-// builder.AddNpgsqlDbContext<ApplicationDbContext>("IdentityDb");
-
 var migrationsAssembly = typeof(Program).Assembly.GetName().Name;
-string connectionString = builder.Configuration.GetConnectionString("identitydb");
 
-builder.AddSqlServerDbContext<ApplicationDbContext>("identitydb");
+var connectionString = builder.Configuration.GetConnectionString("IdentityDB")
+    ?? throw new InvalidOperationException("Connection string 'IdentityDB' not found.");
 
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(connectionString));
+
+//builder.AddNpgsqlDbContext<ApplicationDbContext>(connectionString);
+
+//builder.AddNpgsqlDataSource("IdentityDB");
 
 // Replace this with manual migrations.  Perhaps DBUp?
 builder.Services.AddMigration<ApplicationDbContext, UsersSeed>();
@@ -42,12 +46,12 @@ builder.Services.AddIdentityServer(options =>
 })
 .AddConfigurationStore(options =>
 {
-    options.ConfigureDbContext = b => b.UseSqlServer(connectionString, 
+    options.ConfigureDbContext = b => b.UseNpgsql("IdentityDB", 
         sql => sql.MigrationsAssembly(migrationsAssembly));
 })
 .AddOperationalStore(options =>
 {
-    options.ConfigureDbContext = b => b.UseSqlServer(connectionString,
+    options.ConfigureDbContext = b => b.UseNpgsql("IdentityDB",
         sql => sql.MigrationsAssembly(migrationsAssembly));
 })
 .AddAspNetIdentity<ApplicationUser>()
@@ -60,7 +64,7 @@ builder.Services.AddTransient<IRedirectService, RedirectService>();
 
 var app = builder.Build();
 
-HostingExtensions.InitializeDatabase(app, app.Configuration);
+//HostingExtensions.InitializeDatabase(app, app.Configuration);
 
 app.MapDefaultEndpoints();
 

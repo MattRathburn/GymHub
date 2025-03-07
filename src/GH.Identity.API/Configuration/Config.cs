@@ -1,7 +1,7 @@
 ﻿
 using Duende.IdentityServer;
 using Duende.IdentityServer.Models;
-using IdentityModel;
+using Duende.IdentityModel;
 
 namespace GH.Identity.API.Configuration;
 
@@ -81,6 +81,8 @@ public class Config
                         IdentityServerConstants.StandardScopes.OpenId,
                         IdentityServerConstants.StandardScopes.Profile,
                         IdentityServerConstants.StandardScopes.OfflineAccess,
+                        "TodoAPI",
+                        "ProgramAPI"
                     },
                     AccessTokenLifetime = 60*60*2, // 2 hours
                     IdentityTokenLifetime= 60*60*2 // 2 hours

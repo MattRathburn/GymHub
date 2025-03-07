@@ -1,0 +1,32 @@
+<mat-toolbar color="accent">
+    <mat-toolbar-row>
+  
+      <a mat-button class="navbar-brand" [routerLink]="['/']">
+        <h1>Gym Hub</h1>
+      </a>
+      <div class="navbar-space"></div>
+      <div class="navbar-nav flex-grow nav-links">
+        <div class="nav-item" [routerLinkActive]="['link-active']" [routerLinkActiveOptions]="{ exact: true }">
+          <a mat-button [routerLink]="['/']">Home</a>
+        </div>
+  
+        <div *ngIf="authenticated$ | async" class="nav-item" [routerLinkActive]="['link-active']"
+          [routerLinkActiveOptions]="{ exact: true }">
+          <a mat-button [routerLink]="['/user-session']">Show User Session</a>
+        </div>
+  
+        <div *ngIf="authenticated$ | async" class="nav-item" [routerLinkActive]="['link-active']"
+          [routerLinkActiveOptions]="{ exact: true }">
+          <a mat-button [routerLink]="['/todos']">Todos</a>
+        </div>
+  
+        <div *ngIf="anonymous$ | async" class="nav-item">
+          <a mat-button href="/bff/login">Login</a>
+        </div>
+  
+        <div *ngIf="authenticated$ | async" class="nav-item">
+          <a mat-button href="{{logoutUrl$ | async}}">Signout</a>
+        </div>
+      </div>
+    </mat-toolbar-row>
+  </mat-toolbar>
