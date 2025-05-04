@@ -1,7 +1,4 @@
-﻿using GH.Program.API.Infrastructure;
-using GH.Program.API.Models;
-using Microsoft.Extensions.Options;
-
+﻿
 namespace GH.Program.API.Services;
 
 public class GHProgramServices(

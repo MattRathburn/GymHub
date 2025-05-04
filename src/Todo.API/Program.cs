@@ -7,9 +7,9 @@ builder.AddServiceDefaults();
 
 // Add services to the container.
 
-builder.AddDefaultAuthentication();
+//builder.AddDefaultAuthentication();
 
-builder.AddDefaultAuthorization();
+//builder.AddDefaultAuthorization();
 
 var app = builder.Build();
 

@@ -1,15 +1,40 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
-    "identityapi": {
+    //"ghidentityapi": {
+    //  "type": "project.v0",
+    //  "path": "../GH.Identity.API/GH.Identity.API.csproj",
+    //  "env": {
+    //    "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+    //    "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+    //    "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+    //    "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+    //    "HTTP_PORTS": "{ghidentityapi.bindings.http.targetPort}"
+    //  },
+    //  "bindings": {
+    //    "http": {
+    //      "scheme": "http",
+    //      "protocol": "tcp",
+    //      "transport": "http",
+    //      "external": true
+    //    },
+    //    "https": {
+    //      "scheme": "https",
+    //      "protocol": "tcp",
+    //      "transport": "http",
+    //      "external": true
+    //    }
+    //  }
+    //},
+    "ghidentityserver": {
       "type": "project.v0",
-      "path": "../GH.Identity.API/GH.Identity.API.csproj",
+      "path": "../GH.IdentityServer/GH.IdentityServer.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
-        "HTTP_PORTS": "{ghidentity.bindings.http.targetPort}"
+        "HTTP_PORTS": "{ghidentityserver.bindings.http.targetPort}"
       },
       "bindings": {
         "http": {
@@ -26,15 +51,15 @@
         }
       }
     },
-    "webapp.client": {
+    "ghwebapp": {
       "type": "dockerfile.v0",
-      "path": "../WebApp/webapp.client/Dockerfile",
-      "context": "../WebApp/webapp.client",
+      "path": "../GH.WebApp/gh.webapp/Dockerfile",
+      "context": "../GH.WebApp/gh.webapp",
       "env": {
         "NODE_ENV": "development",
-        "services__ghidentity__http__0": "{ghidentity.bindings.http.url}",
-        "services__ghidentity__https__0": "{ghidentity.bindings.https.url}",
-        "PORT": "{webapp.client.bindings.http.targetPort}"
+        "services__ghidentityapi__http__0": "{ghidentityserver.bindings.http.url}",
+        "services__ghidentityapi__https__0": "{ghidentityserver.bindings.https.url}",
+        "PORT": "{ghwebapp.bindings.http.targetPort}"
       },
       "bindings": {
         "http": {
@@ -46,5 +71,25 @@
         }
       }
     }
+    //"ghwebappvite": {
+    //  "type": "dockerfile.v0",
+    //  "path": "../GH.WebApp/gh.webapp.vite/Dockerfile",
+    //  "context": "../GH.WebApp/gh.webapp.vite",
+    //  "env": {
+    //    "NODE_ENV": "development",
+    //    "services__ghidentityapi__http__0": "{ghidentityapi.bindings.http.url}",
+    //    "services__ghidentityapi__https__0": "{ghidentityapi.bindings.https.url}",
+    //    "PORT": "{ghwebapp.vite.bindings.http.targetPort}"
+    //  },
+    //  "bindings": {
+    //    "http": {
+    //      "scheme": "http",
+    //      "protocol": "tcp",
+    //      "transport": "http",
+    //      "targetPort": 8001,
+    //      "external": true
+    //    }
+    //  }
+    //}
   }
 }

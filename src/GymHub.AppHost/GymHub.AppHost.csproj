@@ -10,20 +10,21 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.1.0" />
-    <PackageReference Include="Aspire.Hosting.Azure.CognitiveServices" Version="9.1.0" />
-    <PackageReference Include="Aspire.Hosting.NodeJs" Version="9.1.0" />
-    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="9.1.0" />
-    <PackageReference Include="Aspire.Hosting.RabbitMQ" Version="9.1.0" />
-    <PackageReference Include="Aspire.Hosting.Redis" Version="9.1.0" />
-    <PackageReference Include="Aspire.Hosting.SqlServer" Version="9.1.0" />
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.2.1" />
+    <PackageReference Include="Aspire.Hosting.Azure.CognitiveServices" Version="9.2.1" />
+    <PackageReference Include="Aspire.Hosting.Keycloak" Version="9.2.1-preview.1.25222.1" />
+    <PackageReference Include="Aspire.Hosting.NodeJs" Version="9.2.1" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="9.2.1" />
+    <PackageReference Include="Aspire.Hosting.RabbitMQ" Version="9.2.1" />
+    <PackageReference Include="Aspire.Hosting.Redis" Version="9.2.1" />
+    <PackageReference Include="Aspire.Hosting.SqlServer" Version="9.2.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GH.Identity.API\GH.Identity.API.csproj" />
+    <ProjectReference Include="..\GH.Admin\GH.Admin\GH.Admin.csproj" />
     <ProjectReference Include="..\GH.Program.API\GH.Program.API.csproj" />
+    <ProjectReference Include="..\GH.Program.DbManager\GH.Program.DbManager.csproj" />
     <ProjectReference Include="..\Todo.API\Todo.API.csproj" />
-    <ProjectReference Include="..\WebApp\WebApp.Server\WebApp.Server.csproj" />
   </ItemGroup>
 
 </Project>

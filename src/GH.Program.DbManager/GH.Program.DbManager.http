@@ -1,0 +1,6 @@
+@GH.Program.DbManager_HostAddress = http://localhost:5263
+
+GET {{GH.Program.DbManager_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

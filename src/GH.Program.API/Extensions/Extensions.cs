@@ -12,29 +12,15 @@ public static class Extensions
             dbContextOptionsBuilder.UseNpgsql();
         });
 
+        builder.Services.AddAuthorization();
+
         builder.Services.AddAuthentication()
-            .AddJwtBearer(options =>
+            .AddKeycloakJwtBearer("keycloak", realm: "TestRealm", options =>
             {
-                options.Authority = "https://localhost:7258";
-                options.Audience = "ProgramAPI";
-                options.MapInboundClaims = true;
-
-                // audience is optional, make sure you read the following paragraphs
-                // to understand your options
-                options.TokenValidationParameters.ValidateAudience = false;
-
-                // it's recommended to check the type header to avoid "JWT confusion" attacks
-                options.TokenValidationParameters.ValidTypes = new[] { "at+jwt" };
+                options.RequireHttpsMetadata = false;
+                options.Audience = "account";
             });
 
-        builder.Services.AddAuthorization(options =>
-        {
-            options.AddPolicy("ApiScope", policy =>
-            {
-                policy.RequireAuthenticatedUser();
-                policy.RequireClaim("scope", "ProgramAPI");
-            });
-        });
 
     }
 }

@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, catchError, filter, map, Observable, of, shareReplay } from 'rxjs';
+import { defer, catchError, Observable, of, shareReplay } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 const ANONYMOUS: Session = null;
 const CACHE_SIZE = 1;
@@ -9,45 +10,34 @@ const CACHE_SIZE = 1;
   providedIn: 'root'
 })
 export class AuthenticationService {
+  private readonly http = inject(HttpClient);
   private session$: Observable<Session> | null = null
-  constructor(private http: HttpClient) { }
 
-  public getSession(ignoreCache: boolean = false) {
+  public session: Signal<Session> = toSignal(
+    defer(() => this.getSession()), // Defer the getSession call
+    { initialValue: ANONYMOUS }
+  );
+
+  public isAuthenticated = computed(() => this.session() !== null);
+  public isAnonymous = computed(() => this.session() === null);
+  public username = computed(() => {
+    const session = this.session();
+    return session ? session.find(c => c.type === 'name')?.value || null : null;
+  });
+  public logoutUrl = computed(() => {
+    const session = this.session();
+    return session ? session.find(c => c.type === 'bff:logout_url')?.value || null : null;
+  });
+
+
+  public getSession(ignoreCache: boolean = false): Observable<Session> {
     if (!this.session$ || ignoreCache) {
       this.session$ = this.http.get<Session>('bff/user').pipe(
-        catchError(err => {
-          return of(ANONYMOUS);
-        }),
+        catchError(err => of(ANONYMOUS)),
         shareReplay(CACHE_SIZE)
       );
     }
     return this.session$;
-  }
-
-  public getIsAuthenticated(ignoreCache: boolean = false) {
-    return this.getSession(ignoreCache).pipe(
-      map(UserIsAuthenticated)
-    );
-  }
-
-  public getIsAnonymous(ignoreCache: boolean = false) {
-    return this.getSession(ignoreCache).pipe(
-      map(UserIsAnonymous)
-    );
-  }
-
-  public getUsername(ignoreCache: boolean = false) {
-    return this.getSession(ignoreCache).pipe(
-      filter(UserIsAuthenticated),
-      map(s => s.find(c => c.type === 'name')?.value)
-    );
-  }
-
-  public getLogoutUrl(ignoreCache: boolean = false) {
-    return this.getSession(ignoreCache).pipe(
-      filter(UserIsAuthenticated),
-      map(s => s.find(c => c.type === 'bff:logout_url')?.value)
-    );
   }
 }
 
@@ -55,13 +45,4 @@ export interface Claim {
   type: string;
   value: string;
 }
-
 export type Session = Claim[] | null;
-
-function UserIsAuthenticated(s: Session): s is Claim[] {
-  return s !== null;
-}
-
-function UserIsAnonymous(s: Session): s is null {
-  return s === null;
-}
