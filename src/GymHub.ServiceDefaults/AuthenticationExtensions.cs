@@ -15,7 +15,7 @@ public static class AuthenticationExtensions
         // {
         //   "Identity": {
         //     "Url": "http://identity",
-        //     "Audience": "program"
+        //     "Audience": "plan"
         //    }
         // }
 

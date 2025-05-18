@@ -1,56 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
-    //"ghidentityapi": {
-    //  "type": "project.v0",
-    //  "path": "../GH.Identity.API/GH.Identity.API.csproj",
-    //  "env": {
-    //    "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-    //    "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-    //    "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-    //    "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
-    //    "HTTP_PORTS": "{ghidentityapi.bindings.http.targetPort}"
-    //  },
-    //  "bindings": {
-    //    "http": {
-    //      "scheme": "http",
-    //      "protocol": "tcp",
-    //      "transport": "http",
-    //      "external": true
-    //    },
-    //    "https": {
-    //      "scheme": "https",
-    //      "protocol": "tcp",
-    //      "transport": "http",
-    //      "external": true
-    //    }
-    //  }
-    //},
-    "ghidentityserver": {
-      "type": "project.v0",
-      "path": "../GH.IdentityServer/GH.IdentityServer.csproj",
-      "env": {
-        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
-        "HTTP_PORTS": "{ghidentityserver.bindings.http.targetPort}"
-      },
-      "bindings": {
-        "http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http",
-          "external": true
-        },
-        "https": {
-          "scheme": "https",
-          "protocol": "tcp",
-          "transport": "http",
-          "external": true
-        }
-      }
-    },
     "ghwebapp": {
       "type": "dockerfile.v0",
       "path": "../GH.WebApp/gh.webapp/Dockerfile",

@@ -17,28 +17,28 @@ var postgres = builder.AddPostgres("gymhub")
 //    postgres.WithDataVolume();
 //}
 
-var programdb = postgres.AddDatabase("programdb");
+var plandb = postgres.AddDatabase("plandb");
 
-var programCache = builder.AddRedis("programcache")
+var planCache = builder.AddRedis("plancache")
     .WithDataVolume()
     .WithRedisInsight();
 
-var programMigration = builder.AddProject<Projects.GH_Program_DbManager>("gh-program-dbmanager")
-        .WithReference(programdb)
-        .WaitFor(programdb);
+var programMigration = builder.AddProject<Projects.GH_Plan_DbManager>("gh-plan-dbmanager")
+        .WithReference(plandb)
+        .WaitFor(plandb);
 
 
 var todoApi = builder.AddProject<Projects.Todo_API>("todo-api")
     .WithReference(keycloak)
     .WithExternalHttpEndpoints();
 
-var programApi = builder.AddProject<Projects.GH_Program_API>("gh-program-api")
+var programApi = builder.AddProject<Projects.GH_Plan_API>("gh-plan-api")
     .WithExternalHttpEndpoints()
-    .WithReference(programdb)
+    .WithReference(plandb)
     .WithReference(keycloak)
     .WaitFor(programMigration);
 
-builder.AddNpmApp("ghwebapp", "../GH.WebApp/gh.webapp")
+builder.AddNpmApp("gh-webapp-ng", "../GH.WebApp/gh.webapp.ng")
     .WithReference(keycloak)
     .WithReference(programApi)
     .WaitFor(keycloak)
@@ -49,7 +49,7 @@ builder.AddNpmApp("ghwebapp", "../GH.WebApp/gh.webapp")
 
 //builder.AddNpmApp("ghwebappvite", "../GH.WebApp/gh.webapp.vite")
 //    .WithReference(keycloak)
-//    .WithReference(programApi)
+//    .WithReference(planApi)
 //    .WaitFor(keycloak)
 //    .WithEnvironment("BROWSER", "none")
 //    .WithHttpEndpoint(env: "VITE_PORT")
@@ -59,16 +59,6 @@ builder.AddNpmApp("ghwebapp", "../GH.WebApp/gh.webapp")
 
 
 builder.AddProject<Projects.GH_Admin>("gh-admin");
-
-//builder.AddNpmApp("ghwebappvite", "../GH.WebApp/gh.webapp.vite")
-//    .WithReference(keycloak)
-//    .WithReference(programApi)
-//    .WaitFor(keycloak)
-//    .WithEnvironment("BROWSER", "none")
-//    .WithHttpEndpoint(env: "VITE_PORT")
-//    .WithExternalHttpEndpoints()
-//    .PublishAsDockerFile();
-
 
 
 builder.Build().Run();
