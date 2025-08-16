@@ -6,11 +6,17 @@
         <a routerLink="/about">About</a>
         <a routerLink="/services">Services</a>
         <a routerLink="/contact">Contact</a>
+        <a routerLink="/plans" *kaHasRoles="['view-plans']">My Plans</a>
         </span>
         <span>
     <div class="navbar-actions">
-        <button mat-button color="primary">Login</button>
-        <button mat-button color="accent">Sign Up</button>
+        @if( !authenticated ) {
+            <button mat-button color="primary" (click)="login()">Login</button>
+            <button mat-button color="accent" (click)="signup()">Sign Up</button>
+        } @else {
+            <button mat-button color="primary" (click)="logout()">Logout</button>
+        }
+
     </div>
     </span>
 </mat-toolbar>

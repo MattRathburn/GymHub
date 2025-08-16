@@ -1,45 +1,106 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
-    "ghwebapp": {
-      "type": "dockerfile.v0",
-      "path": "../GH.WebApp/gh.webapp/Dockerfile",
-      "context": "../GH.WebApp/gh.webapp",
+    "keycloak": {
+      "type": "container.v0",
+      "image": "quay.io/keycloak/keycloak:25.0",
+      "args": [
+        "start",
+        "--import-realm"
+      ],
+      "bindMounts": [
+        {
+          "source": "../realms",
+          "target": "/opt/keycloak/data/import",
+          "readOnly": false
+        }
+      ],
+      "volumes": [
+        {
+          "name": "gymhub.apphost-137842978d-keycloak-data",
+          "target": "/opt/keycloak/data",
+          "readOnly": false
+        }
+      ],
       "env": {
-        "NODE_ENV": "development",
-        "services__ghidentityapi__http__0": "{ghidentityserver.bindings.http.url}",
-        "services__ghidentityapi__https__0": "{ghidentityserver.bindings.https.url}",
-        "PORT": "{ghwebapp.bindings.http.targetPort}"
+        "KEYCLOAK_ADMIN": "admin",
+        "KEYCLOAK_ADMIN_PASSWORD": "{keycloak-password.value}"
       },
       "bindings": {
         "http": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "targetPort": 8000,
+          "targetPort": 8080
+        }
+      }
+    },
+    "planApi": {
+      "type": "project.v0",
+      "path": "../GH.Plan.API/GH.Plan.API.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{planApi.bindings.http.targetPort}",
+        "services__keycloak__http__0": "{keycloak.bindings.http.url}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "ghwebappvite": {
+      "type": "project.v0",
+      "path": "../GH.WebApp/gh.webapp.vite",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{ghwebappvite.bindings.http.targetPort}",
+        "services__keycloak__http__0": "{keycloak.bindings.http.url}",
+        "services__apiservice__http__0": "{apiservice.bindings.http.url}",
+        "services__apiservice__https__0": "{apiservice.bindings.https.url}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http",
           "external": true
         }
       }
+    },
+    "keycloak-password": {
+      "type": "parameter.v0",
+      "value": "{keycloak-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
+        }
+      }
     }
-    //"ghwebappvite": {
-    //  "type": "dockerfile.v0",
-    //  "path": "../GH.WebApp/gh.webapp.vite/Dockerfile",
-    //  "context": "../GH.WebApp/gh.webapp.vite",
-    //  "env": {
-    //    "NODE_ENV": "development",
-    //    "services__ghidentityapi__http__0": "{ghidentityapi.bindings.http.url}",
-    //    "services__ghidentityapi__https__0": "{ghidentityapi.bindings.https.url}",
-    //    "PORT": "{ghwebapp.vite.bindings.http.targetPort}"
-    //  },
-    //  "bindings": {
-    //    "http": {
-    //      "scheme": "http",
-    //      "protocol": "tcp",
-    //      "transport": "http",
-    //      "targetPort": 8001,
-    //      "external": true
-    //    }
-    //  }
-    //}
   }
 }

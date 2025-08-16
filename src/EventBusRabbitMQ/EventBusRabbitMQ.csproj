@@ -7,9 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.RabbitMQ.Client" Version="9.2.0" />
-    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.4" />
-    <PackageReference Include="Polly.Core" Version="8.5.2" />
+    <PackageReference Include="Aspire.RabbitMQ.Client" Version="9.4.1" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.8" />
+    <PackageReference Include="Polly.Core" Version="8.6.2" />
   </ItemGroup>
 
   <ItemGroup>

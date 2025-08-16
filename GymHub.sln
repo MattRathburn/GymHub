@@ -26,6 +26,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GH.Admin.Client", "src\GH.A
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GH.Plan.Infrastructure", "src\GH.Infrastructure\GH.Plan.Infrastructure.csproj", "{38DB9670-F981-44D7-9628-64E5B7B0B0F6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gateway", "src\Gateway\Gateway.csproj", "{3DFB0C0C-A945-4846-B4D0-F9B097B2B14C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -72,6 +74,10 @@ Global
 		{38DB9670-F981-44D7-9628-64E5B7B0B0F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{38DB9670-F981-44D7-9628-64E5B7B0B0F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{38DB9670-F981-44D7-9628-64E5B7B0B0F6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3DFB0C0C-A945-4846-B4D0-F9B097B2B14C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3DFB0C0C-A945-4846-B4D0-F9B097B2B14C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3DFB0C0C-A945-4846-B4D0-F9B097B2B14C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3DFB0C0C-A945-4846-B4D0-F9B097B2B14C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -87,6 +93,7 @@ Global
 		{C9F2F61E-BFD9-427E-BAD9-6DAE16017CF1} = {9792F64A-70D1-4BB3-850B-7C3E1800C446}
 		{78553F85-D97E-44AB-B97F-3CBFAD830D86} = {9792F64A-70D1-4BB3-850B-7C3E1800C446}
 		{38DB9670-F981-44D7-9628-64E5B7B0B0F6} = {9792F64A-70D1-4BB3-850B-7C3E1800C446}
+		{3DFB0C0C-A945-4846-B4D0-F9B097B2B14C} = {9792F64A-70D1-4BB3-850B-7C3E1800C446}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F158D0CB-14FB-4385-9175-C0BF75FC665B}

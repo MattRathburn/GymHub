@@ -18,9 +18,9 @@ public static class Extensions
             .AddKeycloakJwtBearer("keycloak", realm: "TestRealm", options =>
             {
                 options.RequireHttpsMetadata = false;
-                options.Audience = "account";
+                options.Audience = "plan.api";
             });
 
-
+        builder.Services.AddSwaggerGen();
     }
 }

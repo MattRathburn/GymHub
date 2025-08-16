@@ -20,7 +20,7 @@ app.UseDefaultOpenApi();
 
 app.UseExceptionHandler();
 
-app.MapGet("/weather", async() =>
+app.MapGet("/api/weather", async () =>
 {
     var startDate = DateOnly.FromDateTime(DateTime.Now);
     var summaries = new[] { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" };
@@ -32,10 +32,11 @@ app.MapGet("/weather", async() =>
     }).ToArray();
 
     return await Task.FromResult(forecasts);
-}).RequireAuthorization();
+});
+    //.RequireAuthorization();
 
-app.UseAuthentication();
-app.UseAuthorization();
+//app.UseAuthentication();
+//app.UseAuthorization();
 
 app.Run();
 
