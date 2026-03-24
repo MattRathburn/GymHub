@@ -22,10 +22,9 @@ var planCache = builder.AddRedis("plancache")
     .WithDataVolume()
     .WithRedisInsight();
 
-var programMigration = builder.AddProject<Projects.GH_Plan_DbManager>("gh-plan-dbmanager")
+var planDbMigration = builder.AddProject<Projects.GH_Plan_DbManager>("gh-plan-dbmanager")
         .WithReference(plandb)
         .WaitFor(plandb);
-
 
 var todoApi = builder.AddProject<Projects.Todo_API>("todo-api")
     .WithReference(keycloak);
@@ -33,30 +32,23 @@ var todoApi = builder.AddProject<Projects.Todo_API>("todo-api")
 var planApi = builder.AddProject<Projects.GH_Plan_API>("gh-plan-api")
     .WithReference(plandb)
     .WithReference(keycloak)
-    .WaitFor(programMigration);
+    .WaitForCompletion(planDbMigration);
 
-//builder.AddNpmApp("gh-webapp-ng", "../GH.WebApp/gh.webapp.ng")
-//    .WithReference(keycloak)
-//    .WithReference(planApi)
-//    .WaitFor(keycloak)
-//    //.WithEnvironment("BROWSER", "none")
-//    .WithHttpEndpoint(env: "PORT")
-//    .WithExternalHttpEndpoints()
-//    .PublishAsDockerFile();
-
-builder.AddNpmApp("ghwebappvite", "../GH.WebApp/gh.webapp.vite")
+builder.AddNpmApp("gh-webapp-ng", "../GH.WebApp/gh.webapp.ng")
     .WithReference(keycloak)
     .WithReference(planApi)
     .WaitFor(keycloak)
-    .WithEnvironment("BROWSER", "none")
-    .WithHttpEndpoint(env: "VITE_PORT")
+    .WithHttpEndpoint(env: "PORT")
+    .WithExternalHttpEndpoints()
     .PublishAsDockerFile();
 
 builder.AddProject<Projects.GH_Admin>("gh-admin");
 
 builder.AddProject<Projects.Gateway>("gateway")
     .WithReference(planApi)
+    .WithReference(keycloak)
     .WaitFor(planApi)
+    .WaitFor(keycloak)
     .WithExternalHttpEndpoints();
 
 

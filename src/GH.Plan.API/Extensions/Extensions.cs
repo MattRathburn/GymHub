@@ -12,6 +12,17 @@ public static class Extensions
             dbContextOptionsBuilder.UseNpgsql();
         });
 
+        // Add CORS for frontend access
+        builder.Services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
+        });
+
         builder.Services.AddAuthorization();
 
         builder.Services.AddAuthentication()
@@ -21,6 +32,5 @@ public static class Extensions
                 options.Audience = "plan.api";
             });
 
-        builder.Services.AddSwaggerGen();
     }
 }

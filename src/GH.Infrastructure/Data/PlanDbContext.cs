@@ -12,9 +12,20 @@ public class PlanDbContext : DbContext
     public DbSet<GHPlan> GHPlans { get; set; }
     public DbSet<PlanComponents> PlanComponents { get; set; }
     public DbSet<PlanCreator> PlanCreators { get; set; }
+    public DbSet<UserPlanSubscription> UserPlanSubscriptions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<UserPlanSubscription>()
+            .HasIndex(x => new { x.UserId, x.PlanId })
+            .IsUnique();
+
+        modelBuilder.Entity<UserPlanSubscription>()
+            .HasOne(x => x.Plan)
+            .WithMany()
+            .HasForeignKey(x => x.PlanId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

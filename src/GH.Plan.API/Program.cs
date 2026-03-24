@@ -1,4 +1,6 @@
 
+using Asp.Versioning;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
@@ -7,11 +9,29 @@ builder.Services.AddProblemDetails();
 
 var withApiVersioning = builder.Services.AddApiVersioning();
 
+//var withApiVersioning = builder.Services.AddApiVersioning(options =>
+//{
+//    options.DefaultApiVersion = new Asp.Versioning.ApiVersion(1);
+//    options.ReportApiVersions = true;
+//    options.AssumeDefaultVersionWhenUnspecified = true;
+//    options.ApiVersionReader = ApiVersionReader.Combine(
+//        new UrlSegmentApiVersionReader(),
+//        new HeaderApiVersionReader("X-Api-Version"));
+//})
+//    .AddApiExplorer(options =>
+//    {
+//        options.GroupNameFormat = "'v'V";
+//        options.SubstituteApiVersionInUrl = true;
+//    });
+
 builder.AddDefaultOpenApi(withApiVersioning);
 
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
+
+// Enable CORS
+app.UseCors();
 
 app.NewVersionedApi("Plan")
     .MapPlanAPIv1();

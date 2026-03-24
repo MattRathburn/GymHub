@@ -15,7 +15,7 @@ public static class AuthenticationExtensions
         // {
         //   "Identity": {
         //     "Url": "http://identity",
-        //     "Audience": "plan"
+        //     "Audience": "basket"
         //    }
         // }
 
@@ -38,7 +38,6 @@ public static class AuthenticationExtensions
             options.Authority = identityUrl;
             options.RequireHttpsMetadata = false;
             options.Audience = audience;
-            options.MapInboundClaims = true;
 
 #if DEBUG
             //Needed if using Android Emulator Locally. See https://learn.microsoft.com/en-us/dotnet/maui/data-cloud/local-web-services?view=net-maui-8.0#android
@@ -48,12 +47,9 @@ public static class AuthenticationExtensions
 #endif
 
             options.TokenValidationParameters.ValidateAudience = false;
-
-            // it's recommended to check the type header to avoid "JWT confusion" attacks
-            options.TokenValidationParameters.ValidTypes = new[] { "at+jwt" };
         });
 
-        //services.AddAuthorization();
+        services.AddAuthorization();
 
         return services;
     }
