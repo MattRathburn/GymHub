@@ -25,7 +25,6 @@
     <ProjectReference Include="..\GH.Admin\GH.Admin\GH.Admin.csproj" />
     <ProjectReference Include="..\GH.Plan.API\GH.Plan.API.csproj" />
     <ProjectReference Include="..\GH.Plan.DbManager\GH.Plan.DbManager.csproj" />
-    <ProjectReference Include="..\Todo.API\Todo.API.csproj" />
   </ItemGroup>
 
 </Project>
