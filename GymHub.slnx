@@ -1,0 +1,30 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/EventBus/EventBus.csproj" />
+    <Project Path="src/EventBusRabbitMQ/EventBusRabbitMQ.csproj" />
+    <Project Path="src/Gateway/Gateway.csproj" />
+    <Project Path="src/GymHub.AppHost/GymHub.AppHost.csproj" />
+    <Project Path="src/GymHub.ServiceDefaults/GymHub.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/src/Admin/">
+    <Project Path="src/GH.Admin/GH.Admin.Client/GH.Admin.Client.csproj" />
+    <Project Path="src/GH.Admin/GH.Admin/GH.Admin.csproj" />
+  </Folder>
+  <Folder Name="/src/Plan/">
+    <Project Path="src/GH.Infrastructure/GH.Plan.Infrastructure.csproj" />
+    <Project Path="src/GH.Plan.API/GH.Plan.API.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GH.FunctionalTests/GH.FunctionalTests.csproj" />
+    <Project Path="tests/GH.UnitTests/GH.UnitTests.csproj" />
+  </Folder>
+</Solution>

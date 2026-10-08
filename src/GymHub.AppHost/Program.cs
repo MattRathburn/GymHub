@@ -22,9 +22,6 @@ var planCache = builder.AddRedis("plancache")
     .WithDataVolume()
     .WithRedisInsight();
 
-var todoApi = builder.AddProject<Projects.Todo_API>("todo-api")
-    .WithReference(keycloak);
-
 var planApi = builder.AddProject<Projects.GH_Plan_API>("gh-plan-api")
     .WithReference(plandb)
     .WithReference(keycloak);
