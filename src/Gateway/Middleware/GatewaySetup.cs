@@ -54,7 +54,8 @@ public static class GatewaySetup
     public static void AddGateway(this WebApplicationBuilder builder, GatewayConfigurationRecord config, DiscoveryDocument disco)
     {
         builder.Services.AddReverseProxy()
-            .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+            .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
+            .AddServiceDiscoveryDestinationResolver();
 
         builder.Services.AddSingleton<DiscoveryDocument>(disco);
         builder.Services.AddSingleton<GatewayConfigurationRecord>(config);

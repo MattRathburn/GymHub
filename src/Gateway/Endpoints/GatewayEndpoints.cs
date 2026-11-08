@@ -77,7 +77,8 @@ public static class GatewayEndpoints
             var isAuthenticated = user.Identity?.IsAuthenticated ?? false;
             var name = user.Identity?.Name ?? string.Empty;
             var subject = user.FindFirst("sub")?.Value ?? user.FindFirst("preferred_username")?.Value ?? string.Empty;
-            var roles = user.FindAll("role").Select(r => r.Value).ToArray();
+            // Keycloak realm roles, flattened into "roles" by the gymhub-bff client mapper.
+            var roles = user.FindAll("roles").Select(r => r.Value).ToArray();
 
             var claims = user.Claims.Select(c => new { type = c.Type, value = c.Value }).ToArray();
 

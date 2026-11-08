@@ -4,49 +4,49 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddForwardedHeaders();
 
+// Shared by Keycloak's realm import (Realms/gh-test-realm.json) and the Gateway. Set it in this project's user-secrets.
+var bffClientSecret = builder.AddParameter("bff-client-secret", secret: true);
+
 var keycloak = builder.AddKeycloak("keycloak", 8080)
-    .WithDataVolume();
+    .WithDataVolume("gymhub-keycloak-data")
+    .WithRealmImport("./Realms")
+    .WithEnvironment("GYMHUB_BFF_CLIENT_SECRET", bffClientSecret);
 
 var postgres = builder.AddPostgres("gymhub")
     .WithPgAdmin()
     .WithLifetime(ContainerLifetime.Persistent);
 
-//if (builder.ExecutionContext.IsRunMode)
-//{
-//    postgres.WithDataVolume();
-//}
+var gymhubDb = postgres.AddDatabase("gymhubdb");
 
-var plandb = postgres.AddDatabase("plandb");
+var media = builder.AddMinioContainer("media")
+    .WithDataVolume();
 
-var planCache = builder.AddRedis("plancache")
+builder.AddRedis("plancache")
     .WithDataVolume()
     .WithRedisInsight();
 
-var planDbManager = builder.AddProject<Projects.GH_Plan_DbManager>("gh-plan-dbmanager")
-    .WithReference(plandb)
-    .WaitFor(plandb);
+var migrations = builder.AddProject<Projects.GymHub_MigrationService>("gymhub-migrations")
+    .WithReference(gymhubDb)
+    .WaitFor(gymhubDb);
 
-var planApi = builder.AddProject<Projects.GH_Plan_API>("gh-plan-api")
-    .WithReference(plandb)
+var api = builder.AddProject<Projects.GymHub_Api>("gymhub-api")
+    .WithReference(gymhubDb)
     .WithReference(keycloak)
-    .WaitForCompletion(planDbManager);
+    .WithReference(media)
+    .WaitFor(media)
+    .WaitForCompletion(migrations);
 
-builder.AddNpmApp("gh-webapp-ng", "../GH.WebApp/gh.webapp.ng")
-    .WithReference(keycloak)
-    .WithReference(planApi)
-    .WaitFor(keycloak)
+var webApp = builder.AddNpmApp("gh-webapp-ng", "../GH.WebApp/gh.webapp.ng")
     .WithHttpEndpoint(env: "PORT")
-    .WithExternalHttpEndpoints()
     .PublishAsDockerFile();
 
-builder.AddProject<Projects.GH_Admin>("gh-admin");
-
 builder.AddProject<Projects.Gateway>("gateway")
-    .WithReference(planApi)
+    .WithReference(api)
     .WithReference(keycloak)
-    .WaitFor(planApi)
+    .WithReference(webApp)
+    .WithEnvironment("OpenIdConnect__ClientSecret", bffClientSecret)
+    .WaitFor(api)
     .WaitFor(keycloak)
     .WithExternalHttpEndpoints();
-
 
 builder.Build().Run();

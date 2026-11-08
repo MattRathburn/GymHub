@@ -1,5 +1,5 @@
 <Project Sdk="Aspire.AppHost.Sdk/13.2.0">
-    
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
@@ -17,14 +17,14 @@
     <PackageReference Include="Aspire.Hosting.Redis" />
     <PackageReference Include="Aspire.Hosting.SqlServer" />
     <PackageReference Include="Aspire.Hosting.Yarp" />
+    <PackageReference Include="CommunityToolkit.Aspire.Hosting.Minio" />
     <PackageReference Include="CommunityToolkit.Aspire.Hosting.Ollama" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Gateway\Gateway.csproj" />
-    <ProjectReference Include="..\GH.Admin\GH.Admin\GH.Admin.csproj" />
-    <ProjectReference Include="..\GH.Plan.API\GH.Plan.API.csproj" />
-    <ProjectReference Include="..\GH.Plan.DbManager\GH.Plan.DbManager.csproj" />
+    <ProjectReference Include="..\GymHub.Api\GymHub.Api.csproj" />
+    <ProjectReference Include="..\GymHub.MigrationService\GymHub.MigrationService.csproj" />
   </ItemGroup>
 
 </Project>

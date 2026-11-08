@@ -98,6 +98,10 @@
     <!-- Miscellaneous -->
     <PackageVersion Include="Dapper" Version="2.1.35" />
     <PackageVersion Include="FluentValidation.AspNetCore" Version="11.3.0" />
+    <PackageVersion Include="FluentValidation" Version="12.2.0" />
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.2.0" />
+    <PackageVersion Include="AWSSDK.S3" Version="4.0.104.11" />
+    <PackageVersion Include="CommunityToolkit.Aspire.Hosting.Minio" Version="13.1.1" />
     <PackageVersion Include="Google.Protobuf" Version="3.33.5" />
     <PackageVersion Include="Microsoft.Web.LibraryManager.Build" Version="2.1.175" />
     <PackageVersion Include="System.Reflection.TypeExtensions" Version="4.7.0" />
@@ -112,5 +116,7 @@
     <PackageVersion Include="coverlet.collector" Version="10.0.0" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
       <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.16.0" />
   </ItemGroup>
 </Project>

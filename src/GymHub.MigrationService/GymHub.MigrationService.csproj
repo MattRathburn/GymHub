@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GymHub.ServiceDefaults\GymHub.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\BuildingBlocks\GymHub.BuildingBlocks\GymHub.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\Modules\Programs\GymHub.Modules.Programs\GymHub.Modules.Programs.csproj" />
+    <ProjectReference Include="..\Modules\Subscriptions\GymHub.Modules.Subscriptions\GymHub.Modules.Subscriptions.csproj" />
+  </ItemGroup>
+
+</Project>

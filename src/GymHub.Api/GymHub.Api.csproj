@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Asp.Versioning.Http" />
+    <PackageReference Include="Aspire.Keycloak.Authentication" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GymHub.ServiceDefaults\GymHub.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\BuildingBlocks\GymHub.BuildingBlocks\GymHub.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\Modules\Programs\GymHub.Modules.Programs\GymHub.Modules.Programs.csproj" />
+    <ProjectReference Include="..\Modules\Subscriptions\GymHub.Modules.Subscriptions\GymHub.Modules.Subscriptions.csproj" />
+  </ItemGroup>
+
+</Project>

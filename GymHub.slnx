@@ -9,20 +9,24 @@
     <File Path="Directory.Packages.props" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/EventBus/EventBus.csproj" />
-    <Project Path="src/EventBusRabbitMQ/EventBusRabbitMQ.csproj" />
     <Project Path="src/Gateway/Gateway.csproj" />
+    <Project Path="src/GymHub.Api/GymHub.Api.csproj" />
     <Project Path="src/GymHub.AppHost/GymHub.AppHost.csproj" />
+    <Project Path="src/GymHub.MigrationService/GymHub.MigrationService.csproj" />
     <Project Path="src/GymHub.ServiceDefaults/GymHub.ServiceDefaults.csproj" />
   </Folder>
-  <Folder Name="/src/Admin/">
-    <Project Path="src/GH.Admin/GH.Admin.Client/GH.Admin.Client.csproj" />
-    <Project Path="src/GH.Admin/GH.Admin/GH.Admin.csproj" />
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/EventBus/EventBus.csproj" />
+    <Project Path="src/BuildingBlocks/EventBusRabbitMQ/EventBusRabbitMQ.csproj" />
+    <Project Path="src/BuildingBlocks/GymHub.BuildingBlocks/GymHub.BuildingBlocks.csproj" />
   </Folder>
-  <Folder Name="/src/Plan/">
-    <Project Path="src/GH.Infrastructure/GH.Plan.Infrastructure.csproj" />
-    <Project Path="src/GH.Plan.API/GH.Plan.API.csproj" />
-    <Project Path="src/GH.Plan.DbManager/GH.Plan.DbManager.csproj" />
+  <Folder Name="/src/Modules/Programs/">
+    <Project Path="src/Modules/Programs/GymHub.Modules.Programs/GymHub.Modules.Programs.csproj" />
+    <Project Path="src/Modules/Programs/GymHub.Modules.Programs.Contracts/GymHub.Modules.Programs.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Subscriptions/">
+    <Project Path="src/Modules/Subscriptions/GymHub.Modules.Subscriptions/GymHub.Modules.Subscriptions.csproj" />
+    <Project Path="src/Modules/Subscriptions/GymHub.Modules.Subscriptions.Contracts/GymHub.Modules.Subscriptions.Contracts.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/GH.FunctionalTests/GH.FunctionalTests.csproj" />
