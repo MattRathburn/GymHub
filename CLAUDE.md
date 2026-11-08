@@ -4,65 +4,74 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-GymHub lets users follow coaches and subscribe to their workout plans. It is a .NET Aspire distributed app (`net10.0`, Aspire SDK 13.x) with an Angular 21 frontend, a Blazor admin app, Keycloak for identity, PostgreSQL, and Redis.
+GymHub is a workout-program platform: trainers (approved by an admin) publish programs, users subscribe or buy them, and each program gets a subscriber-only discussion board. It is a **modular monolith with vertical slices** on .NET 10 + Aspire, with a YARP **BFF** (`Gateway`), **Keycloak** auth, PostgreSQL, S3-compatible media storage, and an Angular 21 frontend.
 
-**The root `README.md` is stale** — it describes .NET 8, docker-compose, MassTransit, Identity Server, and `src/Presentation`/`src/Infrastructure` projects that do not exist. Trust the code and `GymHub.AppHost/Program.cs` over the README.
+Built so far: the foundation, the **Programs** module, and a minimal **Subscriptions** module (free enrollment only). Planned modules, each with its own plan: Trainers & Profiles, Billing (Stripe Connect), Discussions, Training Log, Notifications, Reviews.
+
+The root `README.md` is partly stale; trust the code, `GymHub.AppHost/Program.cs` and `.github/instructions/` over it.
 
 ## Commands
 
-Run from the repo root unless noted. The solution file is `GymHub.slnx` (the new XML format; requires a recent .NET SDK).
+Run from the repo root. The solution file is `GymHub.slnx`.
 
 ```bash
 dotnet build GymHub.slnx
-dotnet test GymHub.slnx
-dotnet test tests/GH.UnitTests --filter "FullyQualifiedName~ClassName.MethodName"
-dotnet run --project src/GymHub.AppHost      # starts everything (needs Docker running)
-dotnet tool restore                           # restores Husky.Net
+dotnet test GymHub.slnx                                    # functional tests need Docker (Testcontainers)
+dotnet test tests/GH.UnitTests --filter "FullyQualifiedName~TrainingProgramTests"
+dotnet run --project src/GymHub.AppHost                    # whole system; open the Gateway at https://localhost:7179
 ```
 
-Angular app (`src/GH.WebApp/gh.webapp.ng`): `npm install`, `npm start` (ng serve), `npm run build`, `npm test` (Vitest via `ng test`). Prettier config lives in `package.json` (printWidth 100, single quotes).
+Angular (`src/GH.WebApp/gh.webapp.ng`): `npm install`, `npm test` (Vitest), `npm run build`. `npm start` runs `scripts/start.mjs`, which serves on Aspire's `PORT`. Styling is Tailwind v4; shared classes (`btn-primary`, `input`, `card`, …) are `@utility` rules in `src/styles.css`.
 
-EF Core migrations — the migrations assembly is `GH.Plan.DbManager` (see `npgsqlOptions.MigrationsAssembly` in its `Program.cs`), while `PlanDbContext` lives in `GH.Plan.Infrastructure`:
+EF migrations live in each module project; the migration service is the startup project:
 
 ```bash
-dotnet ef migrations add <Name> --project src/GH.Plan.DbManager --startup-project src/GH.Plan.DbManager
+dotnet ef migrations add <Name> --project src/Modules/Programs/GymHub.Modules.Programs --startup-project src/GymHub.MigrationService --context ProgramsDbContext --output-dir Data/Migrations
 ```
 
-`src/GH.Plan.API/Migrations` is an older, separate migration set from before DbManager existed; don't add to it.
+Design-time builds need a connection string even though nothing connects: set `ConnectionStrings__gymhubdb` to any Npgsql string first.
 
-Build settings that bite (`Directory.Build.props`): **`TreatWarningsAsErrors` is on**, so any compiler/analyzer warning fails the build. Package versions are centrally managed in `Directory.Packages.props` — add `<PackageReference Include="X" />` without a version in the csproj and put the version in `Directory.Packages.props`.
+Build settings that bite: **`TreatWarningsAsErrors`** is on (xUnit analyzers included, so pass `TestContext.Current.CancellationToken` in tests), and package versions are central in `Directory.Packages.props`.
+
+### Local secrets and seed data
+
+AppHost user-secrets must hold `Parameters:bff-client-secret`, `Parameters:media-access-key` and `Parameters:media-secret-key`. The bff secret is injected into both Keycloak's realm import and the Gateway.
+
+`src/GymHub.AppHost/Realms/GH-Test-Realm-realm.json` seeds users `member`, `trainer` and `admin` with dev passwords. The file name must be `<realm>-realm.json`. Keycloak imports it only into an empty data volume (`IGNORE_EXISTING`), and Aspire copies it into that volume, so realm changes need a fresh volume.
 
 ## Architecture
 
-**Orchestration — `src/GymHub.AppHost/Program.cs`** is the source of truth for what runs and how services find each other. It wires up Keycloak (port 8080, data volume), Postgres `gymhub` with database `plandb` (persistent container + pgAdmin), Redis `plancache`, and the projects `gh-plan-api`, `gh-admin`, `gateway`, plus the Angular app via `AddNpmApp`. Resource names here are what services use for connection strings and service discovery (e.g. `AddNpgsqlDbContext<PlanDbContext>("plandb")`, YARP destination `https://gh-plan-api`). `AddForwardedHeaders()` in `AppHost/Extensions.cs` sets `ASPNETCORE_FORWARDEDHEADERS_ENABLED` on every project.
+**Request flow:** Browser → `Gateway` (same origin) → `GymHub.Api`.
+- The Gateway serves the SPA (catch-all YARP route to the Angular dev server) and does OIDC code + PKCE login with Keycloak. It keeps tokens in server-side session; the browser holds only a cookie.
+- `/gh-api/**` is proxied to `gymhub-api` with the prefix stripped. `GatewayService.AddToken` attaches the bearer token, and `XsrfMiddleware` requires `X-XSRF-TOKEN` (echoed from the `XSRF-TOKEN` cookie). Both match on `Apis[].ApiPath` in `Gateway/appsettings.json`, which must equal the route prefix.
+- Gateway endpoints: `/login`, `/logout`, `/api/user` (the SPA's source of identity and roles).
+- Keycloak is pinned to `KC_HOSTNAME=http://localhost:8080`, so the issuer matches for the Gateway (direct) and the API (service discovery).
 
-**Request flow (BFF pattern):** Browser → `Gateway` → backend APIs.
-- `src/Gateway` is a YARP-based Backend-for-Frontend. It does the OIDC code+PKCE login against Keycloak, keeps tokens server-side in session (cookie auth to the browser), and on each proxied request `GatewayPipeline` → `GatewayService.AddToken` attaches a bearer token for the target API. Optional token exchange is selected by `Gateway:TokenExchangeStrategy` (`none` | `AzureAd` | `default`) in `GatewaySetup.AddTokenExchangeService`.
-- Routes are in `Gateway/appsettings.json` under `ReverseProxy`: `/planapi/**` → Plan API (prefix stripped), `/auth/**` and `/api/**` → Keycloak. The `Apis` section maps API paths to scopes requested for them.
-- The gateway enforces XSRF: it issues an `XSRF-RequestToken` cookie and expects an `X-XSRF-TOKEN` header. The Angular `secure-api.interceptor.ts` adds that header for requests to `/api/` and `/planapi/api/` on the current host — new backend prefixes need to be added there too.
-- Gateway fetches the OIDC discovery document at startup (`DiscoveryService`), so Keycloak must be up first (AppHost uses `WaitFor(keycloak)`).
+**Module host:** `GymHub.Api/Program.cs` keeps an explicit `IModule[]` list. Each module registers services and maps endpoints under `/api/v1/{module.Name}`. The JWT bearer uses audience `gymhub-api`, `RoleClaimType = "roles"`, and policies `Policies.Trainer` / `Policies.Admin`.
 
-**Plan service:**
-- `src/GH.Infrastructure` (project/assembly `GH.Plan.Infrastructure`) — `PlanDbContext` and entity models (`GHPlan`, `PlanCreator`, `PlanComponents`, `UserPlanSubscription`, pagination types). Shared by the API, DbManager, and Admin.
-- `src/GH.Plan.API` — Minimal APIs with Asp.Versioning. Endpoints are static handler methods in `APIs/PlanAPI.cs`, registered via `app.NewVersionedApi("Plan").MapPlanAPIv1()` under `api/plan`. Dependencies are injected as an `[AsParameters] GHPlanServices` record, and handlers return `TypedResults`/`Results<...>`. User identity comes from the `sub` (fallback `preferred_username`) claim. JWT bearer auth via `AddKeycloakJwtBearer` (audience `plan.api`) is in `Extensions/Extensions.cs`.
-- `src/GH.Plan.DbManager` — a run-once worker that creates the database and applies migrations, then stops the host (`PlanDbInitializer`).
+**Module rules** (enforced by `tests/GH.UnitTests/Architecture`):
+- A module references `GymHub.BuildingBlocks` and other modules' **`.Contracts`** projects only. For example, Programs uses `IEntitlements` from Subscriptions.Contracts, and Subscriptions uses `IProgramCatalog` from Programs.Contracts.
+- Each module owns a `ModuleDbContext` subclass with its own Postgres **schema**, outbox table and migrations, all in the single `gymhubdb` database. There are no cross-module FKs.
+- Slices (`Features/<Slice>/<Slice>.cs`: endpoint + handler + request + validator) don't reference each other. Shared code goes in `Features/Shared` or `Domain`.
 
-**Shared plumbing — `src/GymHub.ServiceDefaults`:** every service calls `builder.AddServiceDefaults()` and `app.MapDefaultEndpoints()` (OpenTelemetry, health checks, service discovery, HTTP resilience). Also provides `AddDefaultOpenApi`/`UseDefaultOpenApi` (OpenAPI + Scalar, version-aware), `AddDefaultAuthentication`, and `ClaimsPrincipal` helpers.
+**BuildingBlocks** (`src/BuildingBlocks/GymHub.BuildingBlocks`):
+- **Result type:** handlers return `Result`/`Result<T>`, and `.ToHttp()` maps to ProblemDetails (404/403/409/400/402).
+- **Validation:** `.WithValidation<T>()` runs FluentValidation.
+- **Users:** `CurrentUser.Required(principal)` gives the Keycloak `sub`.
+- **Outbox:** aggregates raise `IntegrationEvent`s, and the module DbContext writes them to its outbox in the same `SaveChanges`. `OutboxDispatcher` delivers them in-process to handlers registered with `AddIntegrationEventHandler<TEvent, THandler>()`, reusing `EventBus`'s keyed-handler scheme. Delivery is at-least-once, so handlers must be idempotent.
+- **Storage:** `IObjectStorage` hands out presigned S3 URLs. Browsers upload and download directly, and RustFS CORS allows the Gateway origin.
 
-**Other projects:**
-- `src/GH.Admin` — Blazor Web App (server + WebAssembly `GH.Admin.Client`), still mostly template code.
-- `src/EventBus` + `src/EventBusRabbitMQ` — integration-event abstractions and a RabbitMQ implementation (eShop-style). Not yet wired into AppHost or any service.
-- `tests/GH.UnitTests`, `tests/GH.FunctionalTests` — xUnit v3; currently placeholders.
+**Programs module:**
+- Model: `TrainingProgram` aggregate → weeks → days → workouts → exercises, with sets stored as JSON.
+- Release: each week has a calendar `ReleasesOn` date that applies to every subscriber. Content endpoints return only weeks with `ReleasesOn <= today` (UTC).
+- Pricing: price versions; a published program's price change adds a version.
+- Invariants live in the domain and return `Error`s.
+- `WeekReleaseJob` raises `ProgramWeekReleased` once per released week.
 
-## Things to watch
-
-- AppHost runs `gh-plan-dbmanager` first; `gh-plan-api` uses `WaitForCompletion` on it, so a failed migration keeps the API from starting.
-- The Keycloak realm is `GH-Test-Realm` everywhere (Gateway authority, Plan API and Admin `AddKeycloakJwtBearer`). Keep them in sync.
-- The Plan API has no CORS policy on purpose: the browser reaches it through the Gateway on the same origin.
-- The Gateway's `OpenIdConnect:ClientSecret` is blank in `appsettings.json` and comes from the Gateway project's user-secrets. Set it with `dotnet user-secrets set "OpenIdConnect:ClientSecret" <value> --project src/Gateway`.
+**Other projects:** `GymHub.MigrationService` migrates every module and then exits; the API `WaitForCompletion`s it. `EventBusRabbitMQ` is kept but unused.
 
 ## Repo tooling
 
-- `.github/instructions/` holds Copilot instructions (general, .NET, Angular), `.github/skills/` and `.github/agents/` hold agent skill/role definitions, and `.github/references/` has security/performance/accessibility/testing checklists — consult these when reviewing or testing.
-- `.claude/` contains a multi-phase pipeline (agents, commands, hooks, `rules/review-precedents.md` for recording rejected review findings, `AGENTS.md` for learned patterns).
-- Husky.Net git hooks are in `.husky/`; the pre-commit hook currently only echoes and runs no tasks.
+- `.github/instructions/` (dotnet, angular, general) describes the conventions above in more depth. `.github/skills/` and `.github/agents/` hold agent definitions, and `.github/references/` has review checklists.
+- `.claude/` contains a multi-phase pipeline. `rules/review-precedents.md` records rejected review findings.
+- Husky.Net hooks live in `.husky/`; the pre-commit hook only echoes.

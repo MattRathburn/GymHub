@@ -1,0 +1,197 @@
+<section class="mx-auto max-w-5xl px-4 py-8">
+  <a routerLink="/studio" class="text-sm text-indigo-700 hover:underline">← Trainer studio</a>
+
+  @switch (state().status) {
+    @case ('loading') {
+      <p class="mt-6 text-slate-500">Loading…</p>
+    }
+    @case ('error') {
+      <p class="mt-6 text-rose-600">This program can't be edited.</p>
+    }
+  }
+
+  @if (program(); as p) {
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+      <h1 class="text-2xl font-semibold">{{ p.title }}</h1>
+      <div class="flex items-center gap-2">
+        <span class="rounded bg-slate-200 px-2 py-0.5 text-xs font-medium">{{ p.status }}</span>
+        @if (p.status === 'Draft') {
+          <button class="btn-primary" [disabled]="busy()" (click)="publish()">Publish</button>
+        }
+        @if (p.status === 'Published') {
+          <a [routerLink]="['/programs', p.id]" class="btn-secondary">View as subscriber</a>
+        }
+        @if (!isArchived()) {
+          <button class="btn-danger" [disabled]="busy()" (click)="archive()">Archive</button>
+        }
+      </div>
+    </div>
+
+    @if (error(); as message) {
+      <p class="mt-3 rounded bg-rose-50 px-3 py-2 text-sm text-rose-700">{{ message }}</p>
+    }
+    @if (notice(); as message) {
+      <p class="mt-3 rounded bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ message }}</p>
+    }
+
+    <div class="mt-6 grid gap-6 lg:grid-cols-3">
+      <!-- Details -->
+      <form class="card space-y-3 lg:col-span-2" [formGroup]="details" (ngSubmit)="saveDetails()">
+        <h2 class="font-semibold">Details</h2>
+        <div>
+          <label class="label" for="title">Title</label>
+          <input id="title" class="input" formControlName="title" />
+        </div>
+        <div>
+          <label class="label" for="summary">Summary</label>
+          <input id="summary" class="input" formControlName="summary" />
+        </div>
+        <div>
+          <label class="label" for="description">Description</label>
+          <textarea id="description" rows="4" class="input" formControlName="description"></textarea>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="label" for="kind">Kind</label>
+            <select id="kind" class="input" formControlName="kind">
+              <option value="Ongoing">Ongoing</option>
+              <option value="Finite">Fixed dates</option>
+            </select>
+          </div>
+          <div>
+            <label class="label" for="startsOn">Starts on</label>
+            <input id="startsOn" type="date" class="input" formControlName="startsOn" />
+          </div>
+          @if (details.controls.kind.value === 'Finite') {
+            <div>
+              <label class="label" for="endsOn">Ends on</label>
+              <input id="endsOn" type="date" class="input" formControlName="endsOn" />
+            </div>
+          }
+        </div>
+        <button class="btn-primary" type="submit" [disabled]="details.invalid || busy() || isArchived()">Save details</button>
+      </form>
+
+      <div class="space-y-6">
+        <!-- Pricing -->
+        <form class="card space-y-3" [formGroup]="pricing" (ngSubmit)="savePricing()">
+          <h2 class="font-semibold">Pricing · {{ formatPrice(p.price) }}</h2>
+          <select class="input" formControlName="model">
+            <option value="Free">Free</option>
+            <option value="OneTime">One-time purchase</option>
+            <option value="Recurring">Subscription</option>
+          </select>
+          @if (pricing.controls.model.value !== 'Free') {
+            <div class="grid grid-cols-2 gap-2">
+              <input class="input" type="number" min="0.5" step="0.01" formControlName="amount" aria-label="Amount" />
+              <input class="input uppercase" maxlength="3" formControlName="currency" aria-label="Currency" />
+            </div>
+            @if (pricing.controls.model.value === 'Recurring') {
+              <select class="input" formControlName="interval">
+                <option value="Monthly">Monthly</option>
+                <option value="Yearly">Yearly</option>
+              </select>
+            }
+          }
+          <button class="btn-primary" type="submit" [disabled]="busy() || isArchived()">Save pricing</button>
+        </form>
+
+        <!-- Cover -->
+        <div class="card space-y-2">
+          <h2 class="font-semibold">Cover image</h2>
+          @if (p.coverUrl) {
+            <img [src]="p.coverUrl" alt="" class="h-32 w-full rounded object-cover" />
+          }
+          <input type="file" accept="image/*" class="text-sm" [disabled]="busy() || isArchived()" (change)="uploadCover($event)" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Weeks -->
+    <h2 class="mt-10 text-xl font-semibold">Weeks</h2>
+    <p class="text-sm text-slate-500">Each week becomes visible to every subscriber on its release date.</p>
+
+    <form class="card mt-4 flex flex-wrap items-end gap-3" [formGroup]="newWeek" (ngSubmit)="addWeek()">
+      <div class="grow">
+        <label class="label" for="weekTitle">Week title</label>
+        <input id="weekTitle" class="input" formControlName="title" placeholder="e.g. Foundations" />
+      </div>
+      <div>
+        <label class="label" for="weekRelease">Releases on</label>
+        <input id="weekRelease" type="date" class="input" formControlName="releasesOn" />
+      </div>
+      <button class="btn-primary" type="submit" [disabled]="newWeek.invalid || busy() || isArchived()">Add week</button>
+    </form>
+
+    @for (week of p.weeks; track week.id) {
+      <div class="card mt-4">
+        <div class="flex flex-wrap items-end gap-3">
+          <span class="font-semibold">Week {{ week.number }}</span>
+          <input #weekTitle class="input w-56" [value]="week.title" aria-label="Week title" />
+          <input #weekDate type="date" class="input w-44" [value]="week.releasesOn" aria-label="Release date" />
+          <span class="text-xs text-slate-500">{{ week.isReleased ? 'Released' : 'Scheduled' }}</span>
+          <div class="ml-auto flex gap-2">
+            <button class="btn-secondary" [disabled]="busy() || isArchived()" (click)="updateWeek(week, weekTitle.value, weekDate.value)">Save</button>
+            <button class="btn-secondary" (click)="selectWeek(week)">{{ selectedWeekId() === week.id ? 'Close' : 'Edit days' }}</button>
+            <button class="btn-danger" [disabled]="busy() || isArchived()" (click)="removeWeek(week)">Remove</button>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <app-workout-view [week]="week" />
+        </div>
+
+        @if (selectedWeekId() === week.id) {
+          <div class="mt-4 grid gap-4 border-t border-slate-200 pt-4 lg:grid-cols-2">
+            <form class="space-y-2" [formGroup]="day" (ngSubmit)="saveDay(week)">
+              <h3 class="text-sm font-semibold">Day</h3>
+              <div class="grid grid-cols-3 gap-2">
+                <select class="input" formControlName="number" aria-label="Day number">
+                  @for (n of dayNumbers; track n) {
+                    <option [ngValue]="n">Day {{ n }}</option>
+                  }
+                </select>
+                <input class="input col-span-2" formControlName="title" placeholder="Title (optional)" aria-label="Day title" />
+              </div>
+              <label class="flex items-center gap-2 text-sm"><input type="checkbox" formControlName="isRestDay" /> Rest day</label>
+              <button class="btn-secondary" type="submit" [disabled]="busy() || isArchived()">Save day</button>
+
+              @for (d of week.days; track d.id) {
+                @for (w of d.workouts; track w.id) {
+                  <div class="flex items-center justify-between text-sm">
+                    <span>Day {{ d.number }} · {{ w.title }}</span>
+                    <button type="button" class="text-rose-600 hover:underline" [disabled]="busy() || isArchived()" (click)="removeWorkout(week, d.number, w.id)">Remove</button>
+                  </div>
+                }
+              }
+            </form>
+
+            <form class="space-y-2" [formGroup]="workout" (ngSubmit)="addWorkout(week)">
+              <h3 class="text-sm font-semibold">Add a workout to day {{ day.controls.number.value }}</h3>
+              <input class="input" formControlName="title" placeholder="Workout title" aria-label="Workout title" />
+              <input class="input" formControlName="notes" placeholder="Notes (optional)" aria-label="Workout notes" />
+              <div formArrayName="exercises" class="space-y-2">
+                @for (row of workout.controls.exercises.controls; track row; let i = $index) {
+                  <div class="grid grid-cols-12 gap-1" [formGroupName]="i">
+                    <input class="input col-span-5" formControlName="name" placeholder="Exercise" aria-label="Exercise" />
+                    <input class="input col-span-2" type="number" formControlName="sets" aria-label="Sets" title="Sets" />
+                    <input class="input col-span-2" type="number" formControlName="reps" aria-label="Reps" title="Reps" />
+                    <input class="input col-span-2" type="number" formControlName="weightKg" aria-label="Weight (kg)" title="kg" />
+                    <button type="button" class="col-span-1 text-rose-600" (click)="removeExerciseRow(i)" aria-label="Remove exercise">×</button>
+                  </div>
+                }
+              </div>
+              <p class="text-xs text-slate-500">Columns: exercise, sets, reps, weight (kg).</p>
+              <div class="flex gap-2">
+                <button type="button" class="btn-secondary" (click)="addExerciseRow()">Add exercise</button>
+                <button class="btn-primary" type="submit" [disabled]="workout.invalid || busy() || isArchived()">Add workout</button>
+              </div>
+            </form>
+          </div>
+        }
+      </div>
+    } @empty {
+      <p class="mt-4 text-slate-500">No weeks yet. Add the first one above.</p>
+    }
+  }
+</section>

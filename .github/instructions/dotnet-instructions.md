@@ -1,34 +1,30 @@
-# Instructions.md — Vertical Slice Architecture (.NET 10 + Aspire)
+# Instructions.md — Modular Monolith with Vertical Slices (.NET 10 + Aspire)
 
 ## Overview
 
-This project follows a **Vertical Slice Architecture** using:
+GymHub is a **modular monolith**: one API host (`GymHub.Api`) loads independent business modules, and each module is organised into **vertical slices** (one folder per feature). A separate **BFF** (`Gateway`) handles login and sessions in front of it.
 
-* .NET 10 (ASP.NET Core + Minimal APIs)
-* .NET Aspire (orchestration & service defaults)
-* PostgreSQL (primary database)
-* Angular (frontend)
-* RabbitMQ (event-driven messaging)
-
-The goal is to organize the system **by feature**, not by technical layer, enabling:
-
-* High cohesion
-* Low coupling
-* Faster feature delivery
-* Easier testing and maintenance
+* .NET 10 (ASP.NET Core Minimal APIs)
+* .NET Aspire (orchestration, service defaults, service discovery)
+* PostgreSQL (one database, one schema per module)
+* Keycloak (identity; realm checked in as code)
+* S3-compatible object storage (RustFS locally) for media
+* Angular (frontend, served through the Gateway)
 
 ---
 
 ## High-Level Architecture
 
 ```
-Client (Angular)
+Browser (Angular SPA)
+      ↓  same origin, session cookie + XSRF header
+Gateway (YARP BFF: OIDC login, tokens kept server-side)
+      ↓  /gh-api/** with a bearer token
+GymHub.Api (module host)
       ↓
-BFF / API Gateway (Minimal APIs)
+Modules: Programs, Subscriptions, … (vertical slices inside each)
       ↓
-Feature Slices (Vertical)
-      ↓
-Infrastructure (PostgreSQL, RabbitMQ)
+PostgreSQL (schema per module) · Object storage · Outbox (in-process events)
 ```
 
 ---
@@ -37,279 +33,113 @@ Infrastructure (PostgreSQL, RabbitMQ)
 
 ```
 /src
-  /AppHost                 # .NET Aspire host
-  /ServiceDefaults         # Shared Aspire defaults
-
-  /Api                     # Minimal API entry point (BFF)
-
-  /Features
-    /Users
-      /CreateUser
-      /GetUser
-      /Shared
-    /Workouts
-      /CreateWorkout
-      /LogWorkout
-      /GetWorkouts
-
+  /GymHub.AppHost            # Aspire host; Realms/ holds the Keycloak realm import
+  /GymHub.ServiceDefaults    # Telemetry, health, service discovery, OpenAPI
+  /Gateway                   # BFF
+  /GymHub.Api                # Module host: explicit list of IModule
+  /GymHub.MigrationService   # Runs every module's EF migrations, then exits
   /BuildingBlocks
-    /Persistence
-    /Messaging
-    /Auth
-    /Common
-
-  /Frontend
-    /angular-app
+    /GymHub.BuildingBlocks   # IModule, auth policies, ModuleDbContext, outbox, validation, Result, paging, storage
+    /EventBus                # IntegrationEvent + IIntegrationEventHandler (used by the outbox)
+    /EventBusRabbitMQ        # Unused until a module is extracted
+  /Modules
+    /<Module>
+      /GymHub.Modules.<Module>            # internal: Domain/, Data/, Features/<Slice>/, <Module>Module.cs
+      /GymHub.Modules.<Module>.Contracts  # public: integration events + query interfaces
+  /GH.WebApp/gh.webapp.ng    # Angular
+/tests
+  /GH.UnitTests              # domain rules + architecture rules
+  /GH.FunctionalTests        # WebApplicationFactory + Testcontainers Postgres
 ```
+
+---
+
+## Module Rules
+
+* A module references **BuildingBlocks** and **other modules' `.Contracts` only**, never another module's implementation project. `GH.UnitTests/Architecture` enforces this.
+* Each module owns its data: its own `ModuleDbContext` subclass, its own Postgres **schema**, its own migrations. No cross-module joins or foreign keys; refer to other modules' data by id.
+* Cross-module **reads** go through a contract interface (e.g. `IProgramCatalog`, `IEntitlements`) implemented by the owning module.
+* Cross-module **side effects** go through integration events (see Messaging).
+* A module is an `IModule` (`Name`, `AddServices`, `MapEndpoints`) and is added to the explicit list in `GymHub.Api/Program.cs` and to `GymHub.MigrationService/Program.cs`. Its endpoints live under `/api/v1/{Name}`.
 
 ---
 
 ## Vertical Slice Rules
 
-Each feature slice must:
-
-* Be **self-contained**
-* Contain its own:
-
-  * Endpoint
-  * Request/Response models
-  * Validation
-  * Business logic
-  * Data access
-* Not depend on other slices directly
-
-### Example Slice Structure
+Each slice is a folder under `Features/` holding its endpoint, request/response records, validator and handler, usually in one file named after the slice:
 
 ```
-/Features/Workouts/CreateWorkout
-  CreateWorkoutEndpoint.cs
-  CreateWorkoutRequest.cs
-  CreateWorkoutHandler.cs
-  CreateWorkoutValidator.cs
-  CreateWorkoutResponse.cs
+/Features/PublishProgram
+  PublishProgram.cs   # PublishProgramHandler + PublishProgramEndpoint (+ request/validator when needed)
 ```
 
----
+* Slices do not reference other slices. Anything shared within a module goes in `Features/Shared` (or `Domain`).
+* Business rules live in the domain model (e.g. `TrainingProgram`), which returns `Result`/`Error` instead of throwing.
+* Handlers are plain classes registered as scoped services; no mediator.
 
-## Minimal APIs (Endpoint Pattern)
-
-Each slice exposes its own endpoint.
+### Endpoint pattern
 
 ```csharp
-public static class CreateWorkoutEndpoint
+internal static class PublishProgramEndpoint
 {
-    public static void Map(IEndpointRouteBuilder app)
-    {
-        app.MapPost("/workouts", async (
-            CreateWorkoutRequest request,
-            CreateWorkoutHandler handler,
-            CancellationToken ct) =>
-        {
-            var result = await handler.Handle(request, ct);
-            return Results.Ok(result);
-        });
-    }
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapPost("/{programId:guid}/publish", async (Guid programId, ClaimsPrincipal user, PublishProgramHandler handler, CancellationToken ct) =>
+                (await handler.Handle(programId, CurrentUser.Required(user), ct)).ToHttp())
+            .RequireAuthorization(Policies.Trainer)
+            .WithName("PublishProgram");
 }
 ```
 
-### Endpoint Registration
+* `Result.ToHttp()` maps errors to ProblemDetails (`NotFound` 404, `Forbidden` 403, `Conflict` 409, `Invalid` 400, `PaymentRequired` 402).
+* Validate request bodies with FluentValidation and `.WithValidation<TRequest>()`.
+* Enforce auth per endpoint: `RequireAuthorization(Policies.Trainer | Policies.Admin)` for roles, plus ownership checks in the handler.
 
-In `Program.cs`:
+---
 
-```csharp
-app.MapWorkoutsEndpoints();
+## Persistence (PostgreSQL)
+
+* EF Core, one `ModuleDbContext` per module, registered with `builder.AddModuleDbContext<TContext>(schema)`.
+* Domain objects generate their own `Guid` ids (`Guid.CreateVersion7()`); configure child keys with `ValueGeneratedNever()`.
+* No generic repositories; query the DbContext inside the slice.
+* Migrations live in the module project:
+
+```bash
+dotnet ef migrations add <Name> --project src/Modules/<Module>/GymHub.Modules.<Module> --startup-project src/GymHub.MigrationService --context <Module>DbContext --output-dir Data/Migrations
 ```
 
 ---
 
-## Application Logic (Handler Pattern)
+## Messaging (in-process outbox)
 
-Business logic lives inside handlers.
-
-```csharp
-public class CreateWorkoutHandler
-{
-    private readonly AppDbContext _db;
-    private readonly IPublishEndpoint _publisher;
-
-    public CreateWorkoutHandler(AppDbContext db, IPublishEndpoint publisher)
-    {
-        _db = db;
-        _publisher = publisher;
-    }
-
-    public async Task<CreateWorkoutResponse> Handle(CreateWorkoutRequest request, CancellationToken ct)
-    {
-        var workout = new Workout { Name = request.Name };
-
-        _db.Workouts.Add(workout);
-        await _db.SaveChangesAsync(ct);
-
-        await _publisher.Publish(new WorkoutCreatedEvent(workout.Id), ct);
-
-        return new CreateWorkoutResponse(workout.Id);
-    }
-}
-```
-
----
-
-## PostgreSQL (Persistence)
-
-* Use **Entity Framework Core**
-* One shared `AppDbContext`
-* Keep entity configuration close to features when possible
-
-### Rules
-
-* No generic repository pattern
-* Query directly via DbContext
-* Keep queries inside the slice
-
----
-
-## RabbitMQ (Messaging)
-
-Used for:
-
-* Domain events
-* Cross-service communication
-
-### Guidelines
-
-* Publish events from handlers
-* Consume events in separate consumers
-* Use contracts in `/BuildingBlocks/Messaging`
-
-### Example Event
-
-```csharp
-public record WorkoutCreatedEvent(Guid WorkoutId);
-```
-
----
-
-## .NET Aspire
-
-Aspire manages:
-
-* Service discovery
-* Configuration
-* Observability
-* Container orchestration
-
-### AppHost Example
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-var postgres = builder.AddPostgres("postgres")
-    .WithPgAdmin();
-
-var rabbit = builder.AddRabbitMQ("rabbitmq");
-
-var api = builder.AddProject<Projects.Api>("api")
-    .WithReference(postgres)
-    .WithReference(rabbit);
-
-builder.Build().Run();
-```
-
----
-
-## Angular Frontend
-
-* Communicates with API via HTTP
-* Organized by feature modules
-* Uses services per feature
-
-### Suggested Structure
-
-```
-/src/app
-  /features
-    /workouts
-      workouts.service.ts
-      create-workout.component.ts
-```
+* Integration events are records deriving from `IntegrationEvent`, declared in the publishing module's `.Contracts`.
+* Publish by queuing the event on the module's DbContext (`AddIntegrationEvent`, or by raising it from the aggregate and letting the DbContext collect it on save). It is written in the **same transaction** as the state change.
+* `OutboxDispatcher` delivers events in-process to handlers registered with `services.AddIntegrationEventHandler<TEvent, THandler>()`. Delivery is at-least-once: **handlers must be idempotent**.
+* RabbitMQ (`EventBusRabbitMQ`) is kept for when a module is split out; the event and handler types are the same.
 
 ---
 
 ## Authentication & Authorization
 
-* Use JWT or external provider (e.g., IdentityServer / Keycloak)
-* Enforce auth at endpoint level
-
-```csharp
-app.MapPost("/workouts", ...)
-   .RequireAuthorization();
-```
+* Users sign in through the Gateway (OIDC code + PKCE against Keycloak). The browser only holds a session cookie; the Gateway attaches the access token to `/gh-api/**` requests.
+* The API validates Keycloak JWTs (audience `gymhub-api`). Realm roles arrive as a flat `roles` claim: `trainer`, `admin`.
+* The user id everywhere is the Keycloak `sub` (`CurrentUser.Id`).
 
 ---
 
 ## Testing Strategy
 
-* Unit test handlers
-* Integration test endpoints
-* Use Testcontainers for PostgreSQL & RabbitMQ
-
----
-
-## Conventions
-
-### Naming
-
-* `Feature + Action` (e.g., `CreateWorkout`)
-
-### Dependency Rules
-
-* Features → BuildingBlocks only
-* No feature-to-feature dependencies
-
-### Validation
-
-* Use FluentValidation per slice
+* Domain rules: unit tests on aggregates (`GH.UnitTests`).
+* Architecture rules: `GH.UnitTests/Architecture` (module and slice boundaries).
+* Endpoints: functional tests on the real host with Testcontainers Postgres and a header-based test auth scheme (`GH.FunctionalTests`).
 
 ---
 
 ## Adding a New Feature (Checklist)
 
-1. Create new feature folder
-2. Add Request/Response
-3. Implement Handler
-4. Add Validator
-5. Create Endpoint
-6. Register endpoint
-7. Add tests
-
----
-
-## Key Principles
-
-* Slice by feature, not layer
-* Keep things close together
-* Avoid over-abstraction
-* Prefer explicit over generic
-* Optimize for change
-
----
-
-## Future Enhancements
-
-* CQRS separation (if needed)
-* Caching (Redis)
-* Event sourcing (optional)
-* Background workers via Aspire
-
----
-
-## Summary
-
-This architecture enables:
-
-* Faster feature development
-* Easier onboarding
-* Scalable microservice transition
-* Clean separation of concerns
-
-Build features end-to-end, keep slices isolated, and let Aspire handle the infrastructure 🚀
+1. Create `Features/<Slice>/<Slice>.cs` in the owning module
+2. Add request/response records and a validator
+3. Put rules in the domain model; keep the handler thin
+4. Map the endpoint with auth and validation, and register the handler and endpoint in the module class
+5. Publish an integration event if other modules care
+6. Add a migration if the model changed
+7. Add domain and functional tests
