@@ -30,9 +30,6 @@ var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
-// Enable CORS
-app.UseCors();
-
 app.NewVersionedApi("Plan")
     .MapPlanAPIv1();
 

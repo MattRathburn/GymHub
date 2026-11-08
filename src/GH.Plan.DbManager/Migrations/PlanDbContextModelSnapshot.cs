@@ -16,7 +16,7 @@ namespace GH.Plan.DbManager.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.8")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -87,6 +87,31 @@ namespace GH.Plan.DbManager.Migrations
                     b.ToTable("PlanCreators");
                 });
 
+            modelBuilder.Entity("GH.Plan.Infrastructure.Models.UserPlanSubscription", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("PlanId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanId");
+
+                    b.HasIndex("UserId", "PlanId")
+                        .IsUnique();
+
+                    b.ToTable("UserPlanSubscriptions");
+                });
+
             modelBuilder.Entity("GH.Plan.Infrastructure.Models.GHPlan", b =>
                 {
                     b.HasOne("GH.Plan.Infrastructure.Models.PlanCreator", "Creator")
@@ -101,6 +126,17 @@ namespace GH.Plan.DbManager.Migrations
                     b.HasOne("GH.Plan.Infrastructure.Models.GHPlan", null)
                         .WithMany("Components")
                         .HasForeignKey("GHPlanId");
+                });
+
+            modelBuilder.Entity("GH.Plan.Infrastructure.Models.UserPlanSubscription", b =>
+                {
+                    b.HasOne("GH.Plan.Infrastructure.Models.GHPlan", "Plan")
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Plan");
                 });
 
             modelBuilder.Entity("GH.Plan.Infrastructure.Models.GHPlan", b =>

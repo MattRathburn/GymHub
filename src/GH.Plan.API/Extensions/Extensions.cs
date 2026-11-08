@@ -12,21 +12,10 @@ public static class Extensions
             dbContextOptionsBuilder.UseNpgsql();
         });
 
-        // Add CORS for frontend access
-        builder.Services.AddCors(options =>
-        {
-            options.AddDefaultPolicy(policy =>
-            {
-                policy.AllowAnyOrigin()
-                      .AllowAnyMethod()
-                      .AllowAnyHeader();
-            });
-        });
-
         builder.Services.AddAuthorization();
 
         builder.Services.AddAuthentication()
-            .AddKeycloakJwtBearer("keycloak", realm: "TestRealm", options =>
+            .AddKeycloakJwtBearer("keycloak", realm: "GH-Test-Realm", options =>
             {
                 options.RequireHttpsMetadata = false;
                 options.Audience = "plan.api";

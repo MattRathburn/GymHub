@@ -22,6 +22,7 @@
   <Folder Name="/src/Plan/">
     <Project Path="src/GH.Infrastructure/GH.Plan.Infrastructure.csproj" />
     <Project Path="src/GH.Plan.API/GH.Plan.API.csproj" />
+    <Project Path="src/GH.Plan.DbManager/GH.Plan.DbManager.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/GH.FunctionalTests/GH.FunctionalTests.csproj" />

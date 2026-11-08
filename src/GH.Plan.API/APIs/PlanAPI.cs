@@ -26,11 +26,11 @@ public static class PlanAPI
         api.MapGet("/{name:minlength(2)}", GetPlansByName);
         api.MapGet("/creator/{creator:minlength(2)}", GetPlansByCreator);
 
-        api.MapPut("/", UpdatePlan);
-        api.MapPost("/", CreatePlan);
+        api.MapPut("/", UpdatePlan).RequireAuthorization();
+        api.MapPost("/", CreatePlan).RequireAuthorization();
         api.MapPost("/{id:int}/subscribe", SubscribeToPlan).RequireAuthorization();
         api.MapDelete("/{id:int}/unsubscribe", UnsubscribeFromPlan).RequireAuthorization();
-        api.MapDelete("/{id:int}", DeletePlan);
+        api.MapDelete("/{id:int}", DeletePlan).RequireAuthorization();
 
         return app;
     }

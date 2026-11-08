@@ -15,7 +15,7 @@ public static class Extensions
         builder.Services.AddAuthorization();
 
         builder.Services.AddAuthentication()
-            .AddKeycloakJwtBearer("keycloak", realm: "TestRealm", options =>
+            .AddKeycloakJwtBearer("keycloak", realm: "GH-Test-Realm", options =>
             {
                 options.RequireHttpsMetadata = false;
                 options.Audience = "account";

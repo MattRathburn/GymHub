@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GH.Plan.API\GH.Plan.API.csproj" />
+    <ProjectReference Include="..\GH.Infrastructure\GH.Plan.Infrastructure.csproj" />
     <ProjectReference Include="..\GymHub.ServiceDefaults\GymHub.ServiceDefaults.csproj" />
   </ItemGroup>
 

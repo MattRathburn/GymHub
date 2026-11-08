@@ -22,9 +22,14 @@ var planCache = builder.AddRedis("plancache")
     .WithDataVolume()
     .WithRedisInsight();
 
+var planDbManager = builder.AddProject<Projects.GH_Plan_DbManager>("gh-plan-dbmanager")
+    .WithReference(plandb)
+    .WaitFor(plandb);
+
 var planApi = builder.AddProject<Projects.GH_Plan_API>("gh-plan-api")
     .WithReference(plandb)
-    .WithReference(keycloak);
+    .WithReference(keycloak)
+    .WaitForCompletion(planDbManager);
 
 builder.AddNpmApp("gh-webapp-ng", "../GH.WebApp/gh.webapp.ng")
     .WithReference(keycloak)
