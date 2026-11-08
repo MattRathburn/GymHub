@@ -22,7 +22,7 @@ public interface IObjectStorage
     Task<bool> ExistsAsync(string objectKey, CancellationToken cancellationToken);
 }
 
-internal sealed class S3ObjectStorage(IAmazonS3 s3, string bucket, TimeProvider timeProvider) : IObjectStorage
+internal sealed class S3ObjectStorage(IAmazonS3 s3, string bucket, Protocol protocol, TimeProvider timeProvider) : IObjectStorage
 {
     public PresignedUpload CreateUpload(string objectKey, string contentType, TimeSpan lifetime)
     {
@@ -34,7 +34,8 @@ internal sealed class S3ObjectStorage(IAmazonS3 s3, string bucket, TimeProvider 
             Key = objectKey,
             Verb = HttpVerb.PUT,
             ContentType = contentType,
-            Expires = expiresAt.UtcDateTime
+            Expires = expiresAt.UtcDateTime,
+            Protocol = protocol
         });
 
         return new PresignedUpload(objectKey, new Uri(url), expiresAt);
@@ -46,7 +47,8 @@ internal sealed class S3ObjectStorage(IAmazonS3 s3, string bucket, TimeProvider 
             BucketName = bucket,
             Key = objectKey,
             Verb = HttpVerb.GET,
-            Expires = timeProvider.GetUtcNow().Add(lifetime).UtcDateTime
+            Expires = timeProvider.GetUtcNow().Add(lifetime).UtcDateTime,
+            Protocol = protocol
         }));
 
     public async Task<bool> ExistsAsync(string objectKey, CancellationToken cancellationToken)
@@ -78,19 +80,24 @@ public static class ObjectStorageExtensions
             ?? throw new InvalidOperationException($"Connection string '{ConnectionName}' is not configured.");
 
         var parts = new DbConnectionStringBuilder { ConnectionString = connectionString };
+        var endpoint = new Uri((string)parts["Endpoint"]);
+
+        // Presigned URLs default to https; keep the endpoint's own scheme so local http storage works.
+        var protocol = endpoint.Scheme == Uri.UriSchemeHttp ? Protocol.HTTP : Protocol.HTTPS;
 
         var s3 = new AmazonS3Client(
             (string)parts["AccessKey"],
             (string)parts["SecretKey"],
             new AmazonS3Config
             {
-                ServiceURL = (string)parts["Endpoint"],
+                ServiceURL = endpoint.ToString(),
+                // Local S3 emulators (RustFS) don't do virtual-host-style bucket addressing.
                 ForcePathStyle = true,
                 AuthenticationRegion = "us-east-1"
             });
 
         builder.Services.AddSingleton<IAmazonS3>(s3);
-        builder.Services.AddSingleton<IObjectStorage>(sp => new S3ObjectStorage(s3, BucketName, sp.GetRequiredService<TimeProvider>()));
+        builder.Services.AddSingleton<IObjectStorage>(sp => new S3ObjectStorage(s3, BucketName, protocol, sp.GetRequiredService<TimeProvider>()));
         builder.Services.AddHostedService<ObjectStorageInitializer>();
 
         return builder;

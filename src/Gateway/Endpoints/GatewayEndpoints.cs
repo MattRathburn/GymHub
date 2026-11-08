@@ -42,7 +42,7 @@ public static class GatewayEndpoints
 
     private static void UseLoginEndpoint(this WebApplication app)
     {
-        app.MapGet("/login", (string? redirectUrl, HttpContext ctx) =>
+        app.MapGet("/login", (string? redirectUrl) =>
         {
 
             if (string.IsNullOrEmpty(redirectUrl))
@@ -50,10 +50,11 @@ public static class GatewayEndpoints
                 redirectUrl = "/";
             }
 
-            ctx.ChallengeAsync(OpenIdConnectDefaults.AuthenticationScheme, new AuthenticationProperties
+            // Returned (not fire-and-forget) so the redirect to Keycloak is written before the response completes.
+            return Results.Challenge(new AuthenticationProperties
             {
                 RedirectUri = redirectUrl
-            });
+            }, [OpenIdConnectDefaults.AuthenticationScheme]);
         });
     }
 

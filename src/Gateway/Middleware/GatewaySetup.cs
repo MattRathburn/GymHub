@@ -113,6 +113,11 @@ public static class GatewaySetup
             options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
             options.RequireHttpsMetadata = false;
 
+            // Keep Keycloak's claim names ("sub", "roles") instead of the WS-* URIs.
+            options.MapInboundClaims = false;
+            options.TokenValidationParameters.NameClaimType = "preferred_username";
+            options.TokenValidationParameters.RoleClaimType = "roles";
+
             var scopes = config.Scopes;
             var scopeArray = scopes.Split(" ");
             foreach (var scope in scopeArray)
