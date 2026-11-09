@@ -24,7 +24,7 @@ Follow these rules for all Angular-related code suggestions and refactors:
 - Interfaces: `name.model.ts` (Prefer `interface` over `class` for data models).
 
 ### 5. Testing
-- Write unit tests using **Jasmine and Karma**.
+- Write unit tests with **Vitest** (Angular's `@angular/build:unit-test` builder; run `npm test`).
 - Focus on testing logic within Signals and Services rather than DOM rendering.
 
 ### 6. RxJS Best Practices
@@ -38,5 +38,5 @@ Follow these rules for all Angular-related code suggestions and refactors:
 - **Service-Based**: All HTTP calls must reside in a dedicated `Service`. Components should never call `HttpClient` directly.
 - **Strong Typing**: Every API response must have a corresponding `interface`. Avoid using `any`.
 - **Environment Constants**: Use `environment.ts` for Base URLs and API keys.
-- **Interceptors**: Use Functional Interceptors for adding Auth tokens or global error handling.
+- **Interceptors**: Use Functional Interceptors for cross-cutting concerns. The app is served through the Gateway (BFF), so it never holds tokens: `secure-api.interceptor.ts` sends the session cookie and the `X-XSRF-TOKEN` header (from the `XSRF-TOKEN` cookie) on same-origin `/gh-api/` and `/api/` calls only.
 - **Clean Requests**: Use `HttpParams` for query strings and ensure all POST bodies match the backend interface exactly.

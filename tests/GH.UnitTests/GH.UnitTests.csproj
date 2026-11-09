@@ -13,11 +13,17 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NetArchTest.Rules" />
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Modules\Programs\GymHub.Modules.Programs\GymHub.Modules.Programs.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Subscriptions\GymHub.Modules.Subscriptions\GymHub.Modules.Subscriptions.csproj" />
   </ItemGroup>
 
   <ItemGroup>

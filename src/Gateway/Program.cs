@@ -10,6 +10,8 @@ JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 var config = builder.Configuration.AddGatewayConfiguration();
 var discoService = new DiscoveryService();
 var disco = await discoService.loadDiscoveryDocument(config.Authority);
@@ -18,6 +20,7 @@ builder.Services.AddDistributedMemoryCache();
 builder.AddGateway(config, disco);
 
 var app = builder.Build();
+app.MapDefaultEndpoints();
 app.UseGateway();
 
 if (string.IsNullOrEmpty(config.Url))

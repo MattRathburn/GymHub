@@ -18,6 +18,11 @@ public static class LogoutHandler {
 
             context.Response.Redirect(logoutUri);
             context.HandleResponse();
+            return;
         }
+
+        // Keycloak rejects post_logout_redirect_uri without id_token_hint or client_id, and the
+        // session (holding the id token) is already cleared by /logout, so identify the client.
+        context.ProtocolMessage.ClientId = config.ClientId;
     }
 }

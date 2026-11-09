@@ -54,7 +54,8 @@ public static class GatewaySetup
     public static void AddGateway(this WebApplicationBuilder builder, GatewayConfigurationRecord config, DiscoveryDocument disco)
     {
         builder.Services.AddReverseProxy()
-            .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+            .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
+            .AddServiceDiscoveryDestinationResolver();
 
         builder.Services.AddSingleton<DiscoveryDocument>(disco);
         builder.Services.AddSingleton<GatewayConfigurationRecord>(config);
@@ -111,6 +112,11 @@ public static class GatewaySetup
             options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
             options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
             options.RequireHttpsMetadata = false;
+
+            // Keep Keycloak's claim names ("sub", "roles") instead of the WS-* URIs.
+            options.MapInboundClaims = false;
+            options.TokenValidationParameters.NameClaimType = "preferred_username";
+            options.TokenValidationParameters.RoleClaimType = "roles";
 
             var scopes = config.Scopes;
             var scopeArray = scopes.Split(" ");

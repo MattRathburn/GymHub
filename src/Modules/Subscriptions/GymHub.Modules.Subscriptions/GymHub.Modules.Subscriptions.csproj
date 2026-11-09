@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\GymHub.BuildingBlocks\GymHub.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\GymHub.Modules.Subscriptions.Contracts\GymHub.Modules.Subscriptions.Contracts.csproj" />
+    <ProjectReference Include="..\..\Programs\GymHub.Modules.Programs.Contracts\GymHub.Modules.Programs.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="GH.UnitTests" />
+    <InternalsVisibleTo Include="GH.FunctionalTests" />
+  </ItemGroup>
+
+</Project>
