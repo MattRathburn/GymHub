@@ -19,6 +19,7 @@
         @if (p.summary) {
           <p class="mt-1 text-lg text-slate-600">{{ p.summary }}</p>
         }
+        <a [routerLink]="['/trainers', p.trainerId]" class="mt-1 inline-block text-sm text-indigo-600 hover:underline">About the trainer</a>
         <p class="mt-2 text-sm text-slate-500">
           @if (p.kind === 'Finite') {
             Runs {{ p.startsOn }} to {{ p.endsOn }}

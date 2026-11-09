@@ -28,6 +28,10 @@
     <Project Path="src/Modules/Subscriptions/GymHub.Modules.Subscriptions/GymHub.Modules.Subscriptions.csproj" />
     <Project Path="src/Modules/Subscriptions/GymHub.Modules.Subscriptions.Contracts/GymHub.Modules.Subscriptions.Contracts.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Trainers/">
+    <Project Path="src/Modules/Trainers/GymHub.Modules.Trainers/GymHub.Modules.Trainers.csproj" />
+    <Project Path="src/Modules/Trainers/GymHub.Modules.Trainers.Contracts/GymHub.Modules.Trainers.Contracts.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/GH.FunctionalTests/GH.FunctionalTests.csproj" />
     <Project Path="tests/GH.UnitTests/GH.UnitTests.csproj" />

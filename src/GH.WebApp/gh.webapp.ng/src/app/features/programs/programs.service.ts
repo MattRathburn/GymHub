@@ -29,6 +29,9 @@ export class ProgramsService {
     if (query.search) {
       params = params.set('search', query.search);
     }
+    if (query.trainerId) {
+      params = params.set('trainerId', query.trainerId);
+    }
     if (query.free !== null && query.free !== undefined) {
       params = params.set('free', query.free);
     }

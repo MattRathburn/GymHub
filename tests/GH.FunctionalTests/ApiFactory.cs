@@ -9,6 +9,8 @@ using GymHub.BuildingBlocks.Storage;
 using GymHub.Modules.Programs.Contracts;
 using GymHub.Modules.Programs.Data;
 using GymHub.Modules.Subscriptions.Data;
+using GymHub.Modules.Trainers.Data;
+using GymHub.Modules.Trainers.Identity;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -32,6 +34,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     public RecordingHandler<ProgramPublished> PublishedEvents { get; } = new();
 
+    internal FakeIdentityAdmin IdentityAdmin { get; } = new();
+
     public async ValueTask InitializeAsync()
     {
         await _postgres.StartAsync();
@@ -39,6 +43,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         using var scope = Services.CreateScope();
         await scope.ServiceProvider.GetRequiredService<ProgramsDbContext>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<SubscriptionsDbContext>().Database.MigrateAsync();
+        await scope.ServiceProvider.GetRequiredService<TrainersDbContext>().Database.MigrateAsync();
     }
 
     public new async ValueTask DisposeAsync()
@@ -59,6 +64,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             services.RemoveHostedService<ObjectStorageInitializer>();
             services.RemoveHostedService<OutboxDispatcher>();
             services.AddSingleton<IObjectStorage, FakeObjectStorage>();
+            services.AddSingleton<IIdentityAdmin>(IdentityAdmin);
 
             services.AddSingleton(PublishedEvents);
             services.AddIntegrationEventHandler<ProgramPublished, RecordingHandlerAdapter<ProgramPublished>>();
@@ -144,6 +150,18 @@ public sealed class FakeObjectStorage : IObjectStorage
     public Uri CreateDownloadUrl(string objectKey, TimeSpan lifetime) => new($"http://storage.test/{objectKey}");
 
     public Task<bool> ExistsAsync(string objectKey, CancellationToken cancellationToken) => Task.FromResult(Objects.ContainsKey(objectKey));
+}
+
+/// <summary>Records role grants instead of calling Keycloak.</summary>
+internal sealed class FakeIdentityAdmin : IIdentityAdmin
+{
+    public ConcurrentBag<(string UserId, string Role)> Grants { get; } = [];
+
+    public Task GrantRealmRoleAsync(string userId, string role, CancellationToken cancellationToken)
+    {
+        Grants.Add((userId, role));
+        return Task.CompletedTask;
+    }
 }
 
 public sealed class RecordingHandler<TEvent>

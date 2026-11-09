@@ -18,6 +18,7 @@
     <ProjectReference Include="..\BuildingBlocks\GymHub.BuildingBlocks\GymHub.BuildingBlocks.csproj" />
     <ProjectReference Include="..\Modules\Programs\GymHub.Modules.Programs\GymHub.Modules.Programs.csproj" />
     <ProjectReference Include="..\Modules\Subscriptions\GymHub.Modules.Subscriptions\GymHub.Modules.Subscriptions.csproj" />
+    <ProjectReference Include="..\Modules\Trainers\GymHub.Modules.Trainers\GymHub.Modules.Trainers.csproj" />
   </ItemGroup>
 
 </Project>

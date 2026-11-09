@@ -7,10 +7,14 @@ builder.AddForwardedHeaders();
 // Shared by Keycloak's realm import (Realms/gh-test-realm.json) and the Gateway. Set it in this project's user-secrets.
 var bffClientSecret = builder.AddParameter("bff-client-secret", secret: true);
 
+// Shared by the realm import's gymhub-api-admin service account and the API, which grants the trainer role with it.
+var apiAdminClientSecret = builder.AddParameter("api-admin-client-secret", secret: true);
+
 var keycloak = builder.AddKeycloak("keycloak", 8080)
     .WithDataVolume("gymhub-keycloak")
     .WithRealmImport("./Realms")
     .WithEnvironment("GYMHUB_BFF_CLIENT_SECRET", bffClientSecret)
+    .WithEnvironment("GYMHUB_API_ADMIN_CLIENT_SECRET", apiAdminClientSecret)
     // One issuer for everyone: the browser/Gateway use localhost:8080, the API reaches Keycloak through service discovery.
     .WithEnvironment("KC_HOSTNAME", "http://localhost:8080")
     .WithEnvironment("KC_HOSTNAME_BACKCHANNEL_DYNAMIC", "true");
@@ -47,6 +51,7 @@ var api = builder.AddProject<Projects.GymHub_Api>("gymhub-api")
     .WithReference(gymhubDb)
     .WithReference(keycloak)
     .WithReference(media)
+    .WithEnvironment("KeycloakAdmin__ClientSecret", apiAdminClientSecret)
     .WaitFor(mediaStore)
     .WaitForCompletion(migrations);
 
