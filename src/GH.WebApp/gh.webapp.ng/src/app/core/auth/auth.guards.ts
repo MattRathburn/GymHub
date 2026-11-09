@@ -33,3 +33,19 @@ export const trainerGuard: CanActivateFn = (_route, state) => {
     }),
   );
 };
+
+/** Admin screens: admins only. */
+export const adminGuard: CanActivateFn = (_route, state) => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  return auth.whenLoaded().pipe(
+    map((user) => {
+      if (!user.isAuthenticated) {
+        auth.login(state.url);
+        return false;
+      }
+      return user.roles.includes('admin') ? true : router.parseUrl('/');
+    }),
+  );
+};

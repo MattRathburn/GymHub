@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\Programs\GymHub.Modules.Programs\GymHub.Modules.Programs.csproj" />
     <ProjectReference Include="..\..\src\Modules\Subscriptions\GymHub.Modules.Subscriptions\GymHub.Modules.Subscriptions.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Trainers\GymHub.Modules.Trainers\GymHub.Modules.Trainers.csproj" />
   </ItemGroup>
 
   <ItemGroup>

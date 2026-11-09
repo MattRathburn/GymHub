@@ -163,6 +163,7 @@ export interface PresignedUpload {
 
 export interface BrowseQuery {
   search?: string;
+  trainerId?: string;
   free?: boolean | null;
   kind?: ProgramKind | null;
   pageIndex?: number;

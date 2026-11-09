@@ -3,6 +3,8 @@ using GymHub.Modules.Programs;
 using GymHub.Modules.Programs.Contracts;
 using GymHub.Modules.Subscriptions;
 using GymHub.Modules.Subscriptions.Contracts;
+using GymHub.Modules.Trainers;
+using GymHub.Modules.Trainers.Contracts;
 using NetArchTest.Rules;
 
 namespace GH.UnitTests.Architecture;
@@ -15,13 +17,15 @@ public class ModuleBoundaryTests
     private static readonly Assembly[] ModuleAssemblies =
     [
         typeof(ProgramsModule).Assembly,
-        typeof(SubscriptionsModule).Assembly
+        typeof(SubscriptionsModule).Assembly,
+        typeof(TrainersModule).Assembly
     ];
 
     private static readonly Assembly[] ContractAssemblies =
     [
         typeof(IProgramCatalog).Assembly,
-        typeof(IEntitlements).Assembly
+        typeof(IEntitlements).Assembly,
+        typeof(TrainerApproved).Assembly
     ];
 
     public static TheoryData<string> ModuleNames => [.. ModuleAssemblies.Select(a => a.GetName().Name!)];

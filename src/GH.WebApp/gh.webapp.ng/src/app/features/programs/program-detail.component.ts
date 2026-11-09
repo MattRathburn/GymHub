@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom, switchMap } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { LoadState, toLoadState } from '../../core/http/load-state';
@@ -11,7 +12,7 @@ import { WorkoutViewComponent } from './workout-view.component';
 
 @Component({
   selector: 'app-program-detail',
-  imports: [WorkoutViewComponent],
+  imports: [RouterLink, WorkoutViewComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './program-detail.component.html',
 })
