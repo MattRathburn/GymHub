@@ -81,6 +81,32 @@ namespace GymHub.Modules.Trainers.Data.Migrations
                     b.ToTable("follows", "trainers");
                 });
 
+            modelBuilder.Entity("GymHub.Modules.Trainers.Domain.MemberProfile", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("AvatarObjectKey")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("member_profiles", "trainers");
+                });
+
             modelBuilder.Entity("GymHub.Modules.Trainers.Domain.TrainerApplication", b =>
                 {
                     b.Property<Guid>("Id")

@@ -1,4 +1,6 @@
 using System.Reflection;
+using GymHub.Modules.Discussions;
+using GymHub.Modules.Discussions.Contracts;
 using GymHub.Modules.Programs;
 using GymHub.Modules.Programs.Contracts;
 using GymHub.Modules.Subscriptions;
@@ -18,14 +20,16 @@ public class ModuleBoundaryTests
     [
         typeof(ProgramsModule).Assembly,
         typeof(SubscriptionsModule).Assembly,
-        typeof(TrainersModule).Assembly
+        typeof(TrainersModule).Assembly,
+        typeof(DiscussionsModule).Assembly
     ];
 
     private static readonly Assembly[] ContractAssemblies =
     [
         typeof(IProgramCatalog).Assembly,
         typeof(IEntitlements).Assembly,
-        typeof(TrainerApproved).Assembly
+        typeof(TrainerApproved).Assembly,
+        typeof(DiscussionThreadStarted).Assembly
     ];
 
     public static TheoryData<string> ModuleNames => [.. ModuleAssemblies.Select(a => a.GetName().Name!)];

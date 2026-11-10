@@ -13,6 +13,7 @@ public sealed class TrainersDbContext(DbContextOptions<TrainersDbContext> option
     public DbSet<TrainerApplication> Applications => Set<TrainerApplication>();
     public DbSet<TrainerProfile> Profiles => Set<TrainerProfile>();
     public DbSet<Follow> Follows => Set<Follow>();
+    public DbSet<MemberProfile> MemberProfiles => Set<MemberProfile>();
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -60,6 +61,15 @@ public sealed class TrainersDbContext(DbContextOptions<TrainersDbContext> option
             profile.Property(p => p.UserId).HasMaxLength(100);
             profile.Property(p => p.DisplayName).HasMaxLength(80);
             profile.Property(p => p.Bio).HasMaxLength(2000);
+            profile.Property(p => p.AvatarObjectKey).HasMaxLength(300);
+        });
+
+        modelBuilder.Entity<MemberProfile>(profile =>
+        {
+            profile.ToTable("member_profiles");
+            profile.HasKey(p => p.UserId);
+            profile.Property(p => p.UserId).HasMaxLength(100);
+            profile.Property(p => p.DisplayName).HasMaxLength(MemberProfile.MaxDisplayNameLength);
             profile.Property(p => p.AvatarObjectKey).HasMaxLength(300);
         });
 

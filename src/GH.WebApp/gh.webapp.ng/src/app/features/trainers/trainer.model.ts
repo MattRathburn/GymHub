@@ -49,6 +49,13 @@ export interface FollowedTrainer {
   followedAt: string;
 }
 
+/** Any user's name and avatar, shown next to their posts. */
+export interface MemberProfile {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
 /** Splits a comma- or newline-separated field into trimmed, non-empty entries. */
 export function splitList(value: string): string[] {
   return value

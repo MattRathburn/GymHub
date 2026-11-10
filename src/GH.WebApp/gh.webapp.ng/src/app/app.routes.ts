@@ -13,6 +13,24 @@ export const appRoutes: Route[] = [
     loadComponent: () => import('./features/programs/program-detail.component').then((m) => m.ProgramDetailComponent),
   },
   {
+    path: 'programs/:id/discussion',
+    title: 'GymHub · Discussion',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/discussions/board.component').then((m) => m.BoardComponent),
+  },
+  {
+    path: 'programs/:id/discussion/:threadId',
+    title: 'GymHub · Discussion',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/discussions/thread.component').then((m) => m.ThreadComponent),
+  },
+  {
+    path: 'me/profile',
+    title: 'GymHub · Your profile',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/trainers/member-profile.component').then((m) => m.MemberProfileComponent),
+  },
+  {
     path: 'me/programs',
     title: 'GymHub · My programs',
     canActivate: [authGuard],
@@ -61,6 +79,12 @@ export const appRoutes: Route[] = [
     canActivate: [adminGuard],
     loadComponent: () =>
       import('./features/trainers/admin/trainer-applications.component').then((m) => m.TrainerApplicationsComponent),
+  },
+  {
+    path: 'admin/reports',
+    title: 'GymHub · Reported posts',
+    canActivate: [adminGuard],
+    loadComponent: () => import('./features/discussions/admin/reports.component').then((m) => m.ReportsComponent),
   },
   { path: '**', redirectTo: '' },
 ];

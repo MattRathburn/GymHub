@@ -20,6 +20,10 @@
     <Project Path="src/BuildingBlocks/EventBusRabbitMQ/EventBusRabbitMQ.csproj" />
     <Project Path="src/BuildingBlocks/GymHub.BuildingBlocks/GymHub.BuildingBlocks.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Discussions/">
+    <Project Path="src/Modules/Discussions/GymHub.Modules.Discussions/GymHub.Modules.Discussions.csproj" />
+    <Project Path="src/Modules/Discussions/GymHub.Modules.Discussions.Contracts/GymHub.Modules.Discussions.Contracts.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Programs/">
     <Project Path="src/Modules/Programs/GymHub.Modules.Programs/GymHub.Modules.Programs.csproj" />
     <Project Path="src/Modules/Programs/GymHub.Modules.Programs.Contracts/GymHub.Modules.Programs.Contracts.csproj" />

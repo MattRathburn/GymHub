@@ -6,6 +6,7 @@ import { PagedResult, PresignedUpload } from '../programs/program.model';
 import {
   ApplicationStatus,
   FollowedTrainer,
+  MemberProfile,
   MyTrainerProfile,
   TrainerApplication,
   TrainerDetailsRequest,
@@ -78,5 +79,24 @@ export class TrainersService {
 
   setAvatar(objectKey: string): Observable<MyTrainerProfile> {
     return this.http.put<MyTrainerProfile>(`${this.baseUrl}/me/avatar`, { objectKey });
+  }
+
+  // Member profile (every user)
+
+  /** 404 until the user saves a display name. */
+  myMemberProfile(): Observable<MemberProfile> {
+    return this.http.get<MemberProfile>(`${this.baseUrl}/me/member-profile`);
+  }
+
+  saveMyMemberProfile(displayName: string): Observable<MemberProfile> {
+    return this.http.put<MemberProfile>(`${this.baseUrl}/me/member-profile`, { displayName });
+  }
+
+  requestMemberAvatarUpload(file: File): Observable<PresignedUpload> {
+    return this.http.post<PresignedUpload>(`${this.baseUrl}/me/member-profile/avatar/uploads`, { fileName: file.name, contentType: file.type });
+  }
+
+  setMemberAvatar(objectKey: string): Observable<MemberProfile> {
+    return this.http.put<MemberProfile>(`${this.baseUrl}/me/member-profile/avatar`, { objectKey });
   }
 }
