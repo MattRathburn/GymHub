@@ -4,6 +4,7 @@ using GymHub.BuildingBlocks.Outbox;
 using GymHub.BuildingBlocks.Persistence;
 using GymHub.Modules.Trainers.Contracts;
 using GymHub.Modules.Trainers.Data;
+using GymHub.Modules.Trainers.Features.EditMyMemberProfile;
 using GymHub.Modules.Trainers.Features.EditMyProfile;
 using GymHub.Modules.Trainers.Features.FollowTrainer;
 using GymHub.Modules.Trainers.Features.GetTrainerProfile;
@@ -18,7 +19,7 @@ using Microsoft.Extensions.Options;
 
 namespace GymHub.Modules.Trainers;
 
-/// <summary>Trainer applications and admin review, public trainer profiles, and following trainers.</summary>
+/// <summary>Trainer applications and admin review, public trainer profiles, member profiles, and following trainers.</summary>
 public sealed class TrainersModule : IModule
 {
     public string Name => "trainers";
@@ -34,11 +35,13 @@ public sealed class TrainersModule : IModule
         services.AddHttpClient<IIdentityAdmin, KeycloakIdentityAdmin>((sp, http) =>
             http.BaseAddress = sp.GetRequiredService<IOptions<KeycloakAdminOptions>>().Value.BaseAddress);
         services.AddIntegrationEventHandler<TrainerApproved, GrantTrainerRoleHandler>();
+        services.AddScoped<IProfileDirectory, ProfileDirectory>();
 
         services.AddScoped<SubmitApplicationHandler>();
         services.AddScoped<ReviewApplicationsHandler>();
         services.AddScoped<GetTrainerProfileHandler>();
         services.AddScoped<EditMyProfileHandler>();
+        services.AddScoped<EditMyMemberProfileHandler>();
         services.AddScoped<FollowTrainerHandler>();
         services.AddScoped<ListFollowingHandler>();
     }
@@ -48,6 +51,7 @@ public sealed class TrainersModule : IModule
         SubmitApplicationEndpoint.Map(endpoints);
         ReviewApplicationsEndpoint.Map(endpoints);
         EditMyProfileEndpoint.Map(endpoints);
+        EditMyMemberProfileEndpoint.Map(endpoints);
         ListFollowingEndpoint.Map(endpoints);
         FollowTrainerEndpoint.Map(endpoints);
         GetTrainerProfileEndpoint.Map(endpoints);

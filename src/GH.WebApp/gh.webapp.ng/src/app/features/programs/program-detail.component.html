@@ -58,6 +58,14 @@
     }
 
     @if (hasAccess()) {
+      <a [routerLink]="['/programs', p.id, 'discussion']" class="card mt-6 flex items-center justify-between hover:border-indigo-300">
+        <span>
+          <span class="font-semibold">Discussion board</span>
+          <span class="block text-sm text-slate-600">Ask questions and talk with the trainer and other subscribers.</span>
+        </span>
+        <span class="text-indigo-600">Open →</span>
+      </a>
+
       <h2 class="mt-10 text-xl font-semibold">Your training</h2>
       @for (week of releasedWeeks(); track week.id) {
         <div class="card mt-4">

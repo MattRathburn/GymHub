@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 GymHub is a workout-program platform: trainers (approved by an admin) publish programs, users subscribe or buy them, and each program gets a subscriber-only discussion board. It is a **modular monolith with vertical slices** on .NET 10 + Aspire, with a YARP **BFF** (`Gateway`), **Keycloak** auth, PostgreSQL, S3-compatible media storage, and an Angular 21 frontend.
 
-Built so far: the foundation, the **Programs** module, and a minimal **Subscriptions** module (free enrollment only). Planned modules, each with its own plan: Trainers & Profiles, Billing (Stripe Connect), Discussions, Training Log, Notifications, Reviews.
+Built so far: the foundation and the **Programs**, **Trainers** (applications, profiles, follows, member profiles) and **Discussions** modules, plus a minimal **Subscriptions** module (free enrollment only). Planned modules, each with its own plan: Billing (Stripe Connect), Training Log, Notifications, Reviews. Plans live in `docs/plans/`.
 
 The root `README.md` is partly stale; trust the code, `GymHub.AppHost/Program.cs` and `.github/instructions/` over it.
 
@@ -68,10 +68,18 @@ AppHost user-secrets must hold `Parameters:bff-client-secret`, `Parameters:media
 - Invariants live in the domain and return `Error`s.
 - `WeekReleaseJob` raises `ProgramWeekReleased` once per released week.
 
+**Trainers module:** trainer applications (admin approval grants the Keycloak `trainer` role through the outbox), trainer profiles, follows, and a basic `MemberProfile` (display name + avatar) for every user. Other modules read names through `IProfileDirectory`; a trainer profile name wins over a member profile name.
+
+**Discussions module:**
+- One board per program, for its subscribers (`IEntitlements`), its trainer and admins (`BoardAccess`, checked on every request). Draft programs have no board; archived ones are read-only.
+- `DiscussionThread` (Question/General) with `Post`s: the opening post has no parent, replies nest up to `MaxDepth` (8). Deleting a post with replies leaves a placeholder.
+- The trainer/admin pins, locks and hides; anyone reports a post; admins review reports at `/discussions/reports`.
+- Live updates: `DiscussionsHub` (SignalR) at `/api/v1/discussions/hub`, proxied by the Gateway like any API call. Messages carry ids only (`threadChanged`); clients refetch over REST so per-viewer access applies. In-memory, single instance.
+- The Gateway's XSRF check accepts WebSocket handshakes by `Origin` (browsers can't send the header, and HTTP/2 handshakes are CONNECT requests).
+
 **Other projects:** `GymHub.MigrationService` migrates every module and then exits; the API `WaitForCompletion`s it. `EventBusRabbitMQ` is kept but unused.
 
 ## Repo tooling
 
-- `.github/instructions/` (dotnet, angular, general) describes the conventions above in more depth. `.github/skills/` and `.github/agents/` hold agent definitions, and `.github/references/` has review checklists.
-- `.claude/` contains a multi-phase pipeline. `rules/review-precedents.md` records rejected review findings.
+- `.github/instructions/` (dotnet, angular, copilot) describes the conventions above in more depth, and `.github/references/` has review checklists.
 - Husky.Net hooks live in `.husky/`; the pre-commit hook only echoes.

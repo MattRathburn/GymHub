@@ -179,4 +179,27 @@ public class TrainersApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var member = factory.ClientFor(NewUserId());
         Assert.Equal(HttpStatusCode.Forbidden, (await member.PutAsJsonAsync("/api/v1/trainers/me/profile", ApplicationBody(), Json, Ct)).StatusCode);
     }
+
+    private sealed record MemberProfile(string UserId, string DisplayName, Uri? AvatarUrl);
+
+    [Fact]
+    public async Task Any_user_sets_up_a_member_profile_with_an_avatar()
+    {
+        var userId = NewUserId();
+        var member = factory.ClientFor(userId);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _anonymous.GetAsync("/api/v1/trainers/me/member-profile", Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await member.GetAsync("/api/v1/trainers/me/member-profile", Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await member.PutAsJsonAsync("/api/v1/trainers/me/member-profile", new { displayName = "x" }, Json, Ct)).StatusCode);
+
+        var saved = await member.PutAsJsonAsync("/api/v1/trainers/me/member-profile", new { displayName = "  Lou  " }, Json, Ct);
+        Assert.Equal("Lou", (await saved.Content.ReadFromJsonAsync<MemberProfile>(Json, Ct))!.DisplayName);
+
+        var upload = await (await member.PostAsJsonAsync("/api/v1/trainers/me/member-profile/avatar/uploads", new { fileName = "me.png", contentType = "image/png" }, Json, Ct))
+            .Content.ReadFromJsonAsync<Upload>(Json, Ct);
+        Assert.StartsWith($"members/{userId}/avatar/", upload!.ObjectKey);
+
+        var attached = await member.PutAsJsonAsync("/api/v1/trainers/me/member-profile/avatar", new { objectKey = upload.ObjectKey }, Json, Ct);
+        Assert.NotNull((await attached.Content.ReadFromJsonAsync<MemberProfile>(Json, Ct))!.AvatarUrl);
+    }
 }

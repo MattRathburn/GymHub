@@ -15,9 +15,10 @@ Welcome to the **Gym Hub**! Trainers build workout programs and grow a following
 - Trainers author structured programs: weeks → days → workouts → exercises, with notes, images and video
 - Fixed-date or ongoing programs, with each week released on a calendar date
 - Free, one-time or recurring pricing set by the trainer *(paid checkout with Stripe Connect is planned)*
-- Subscriber-only discussion board per program *(planned)*
+- Trainers apply and an admin approves them; public trainer profiles you can follow
+- Subscriber-only discussion board per program: questions with answers, nested replies, live updates, and moderation with a report queue
 - Workout logging and progress tracking *(planned)*
-- Follow trainers, notifications, reviews and moderation *(planned)*
+- Notifications and reviews *(planned)*
 
 ## Technologies
 - **.NET 10** with ASP.NET Core Minimal APIs
@@ -26,12 +27,13 @@ Welcome to the **Gym Hub**! Trainers build workout programs and grow a following
 - **Keycloak** for identity, with the dev realm checked in as code
 - **YARP** Backend-for-Frontend (BFF) gateway
 - **S3-compatible object storage** for media (RustFS locally)
+- **SignalR** for live discussion updates
 - **Angular 21** with signals, Tailwind CSS and Vitest
 
 ## Architecture
 GymHub is a **modular monolith with vertical slices**:
 
-- `GymHub.Api` hosts independent modules (currently **Programs** and **Subscriptions**). Each module owns its data in its own Postgres schema and exposes only a `.Contracts` project to other modules.
+- `GymHub.Api` hosts independent modules (currently **Programs**, **Subscriptions**, **Trainers** and **Discussions**). Each module owns its data in its own Postgres schema and exposes only a `.Contracts` project to other modules.
 - Inside a module, each feature is a vertical slice: endpoint, request/response, validation and handler together.
 - Modules talk through contract interfaces for reads and through integration events delivered in-process from a transactional outbox.
 - The **Gateway** is a BFF. It signs users in with Keycloak, keeps tokens on the server, serves the Angular app on the same origin, and forwards `/gh-api/**` calls to the API with the user's access token and XSRF protection.
@@ -69,7 +71,7 @@ dotnet test GymHub.slnx
 The functional tests need Docker. For the Angular tests, run `npm test` in `src/GH.WebApp/gh.webapp.ng`.
 
 ## Usage
-Sign in as `trainer`, open **Trainer studio**, create a program, then add weeks, days and workouts and publish it. Sign in as `member` to find the program, subscribe, and see the weeks released so far.
+Sign in as `trainer`, open **Trainer studio**, create a program, then add weeks, days and workouts and publish it. Sign in as `member` to find the program, subscribe, and see the weeks released so far. Subscribers, the trainer and admins open the program's **Discussion board** to ask questions and reply; `admin` reviews reported posts under **Reports**.
 
 ## Contributing
 We welcome contributions! Please read our Contributing Guidelines for more details.

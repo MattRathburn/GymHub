@@ -6,6 +6,7 @@ using EventBus.Abstractions;
 using GymHub.BuildingBlocks.Outbox;
 using GymHub.BuildingBlocks.Persistence;
 using GymHub.BuildingBlocks.Storage;
+using GymHub.Modules.Discussions.Data;
 using GymHub.Modules.Programs.Contracts;
 using GymHub.Modules.Programs.Data;
 using GymHub.Modules.Subscriptions.Data;
@@ -44,6 +45,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await scope.ServiceProvider.GetRequiredService<ProgramsDbContext>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<SubscriptionsDbContext>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<TrainersDbContext>().Database.MigrateAsync();
+        await scope.ServiceProvider.GetRequiredService<DiscussionsDbContext>().Database.MigrateAsync();
     }
 
     public new async ValueTask DisposeAsync()
