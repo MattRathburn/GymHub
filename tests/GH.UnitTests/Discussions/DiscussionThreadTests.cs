@@ -192,6 +192,15 @@ public class PostTests
     {
         Assert.Equal(ErrorKind.Forbidden, OpeningPost().Delete("someone-else", false, Now).Error?.Kind);
     }
+
+    [Fact]
+    public void Authors_cannot_delete_a_post_a_moderator_hid()
+    {
+        var post = OpeningPost();
+        post.SetHidden(true, "trainer", Now);
+
+        Assert.Equal(ErrorKind.Conflict, post.Delete("author", hasReplies: false, Now).Error?.Kind);
+    }
 }
 
 public class PostReportTests

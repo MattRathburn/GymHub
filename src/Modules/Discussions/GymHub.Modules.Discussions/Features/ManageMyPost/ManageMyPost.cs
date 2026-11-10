@@ -62,7 +62,19 @@ internal sealed class ManageMyPostHandler(DiscussionsDbContext db, BoardAccess a
             return opened.Error!;
         }
 
-        var (post, thread, _) = opened.Value;
+        var (post, thread, board) = opened.Value;
+
+        if (!board.CanPost)
+        {
+            return Error.Conflict("This program was archived, so its board is read-only.");
+        }
+
+        // Deleting would cascade away the reports before an admin sees them.
+        if (await db.Reports.AnyAsync(r => r.PostId == postId && r.Status == ReportStatus.Open, cancellationToken))
+        {
+            return Error.Conflict("This post is being reviewed by a moderator and can't be deleted yet.");
+        }
+
         var hasReplies = await db.Posts.AnyAsync(p => p.ParentPostId == postId, cancellationToken);
         var deleted = post.Delete(user.Id, hasReplies, timeProvider.GetUtcNow().UtcDateTime);
 

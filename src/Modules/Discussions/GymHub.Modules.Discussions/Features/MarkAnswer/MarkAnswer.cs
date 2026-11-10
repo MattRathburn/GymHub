@@ -25,6 +25,12 @@ internal sealed class MarkAnswerHandler(DiscussionsDbContext db, BoardAccess acc
         }
 
         var (thread, board) = opened.Value;
+
+        if (!board.CanPost)
+        {
+            return Error.Conflict("This program was archived, so its board is read-only.");
+        }
+
         Domain.Post? post = null;
 
         if (request.PostId is { } postId)

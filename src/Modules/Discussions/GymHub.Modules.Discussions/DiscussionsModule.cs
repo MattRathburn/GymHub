@@ -1,5 +1,6 @@
 using FluentValidation;
 using GymHub.BuildingBlocks.Modules;
+using GymHub.BuildingBlocks.Outbox;
 using GymHub.BuildingBlocks.Persistence;
 using GymHub.Modules.Discussions.Data;
 using GymHub.Modules.Discussions.Features.GetThread;
@@ -14,6 +15,7 @@ using GymHub.Modules.Discussions.Features.ReviewReports;
 using GymHub.Modules.Discussions.Features.Shared;
 using GymHub.Modules.Discussions.Features.StartThread;
 using GymHub.Modules.Discussions.Realtime;
+using GymHub.Modules.Subscriptions.Contracts;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,6 +42,8 @@ public sealed class DiscussionsModule : IModule
         services.AddScoped<BoardAccess>();
         services.AddScoped<AuthorLookup>();
         services.AddSingleton<IBoardNotifier, HubBoardNotifier>();
+        services.AddSingleton<BoardConnections>();
+        services.AddIntegrationEventHandler<EnrollmentCancelled, RevokeBoardAccessHandler>();
 
         services.AddScoped<ListThreadsHandler>();
         services.AddScoped<StartThreadHandler>();

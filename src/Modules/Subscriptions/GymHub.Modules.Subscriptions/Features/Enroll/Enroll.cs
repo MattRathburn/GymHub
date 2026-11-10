@@ -2,6 +2,7 @@ using System.Security.Claims;
 using GymHub.BuildingBlocks.Auth;
 using GymHub.BuildingBlocks.Results;
 using GymHub.Modules.Programs.Contracts;
+using GymHub.Modules.Subscriptions.Contracts;
 using GymHub.Modules.Subscriptions.Data;
 using GymHub.Modules.Subscriptions.Domain;
 using Microsoft.AspNetCore.Builder;
@@ -65,6 +66,7 @@ internal sealed class EnrollHandler(SubscriptionsDbContext db, IProgramCatalog c
         }
 
         enrollment.Cancel(timeProvider.GetUtcNow().UtcDateTime);
+        db.AddIntegrationEvent(new EnrollmentCancelled(user.Id, programId));
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }

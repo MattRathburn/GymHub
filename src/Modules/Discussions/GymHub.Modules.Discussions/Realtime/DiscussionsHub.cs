@@ -3,7 +3,6 @@ using GymHub.Modules.Discussions.Data;
 using GymHub.Modules.Discussions.Features.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace GymHub.Modules.Discussions.Realtime;
@@ -13,45 +12,57 @@ namespace GymHub.Modules.Discussions.Realtime;
 /// endpoints) and receive <see cref="HubBoardNotifier.ThreadChanged"/> messages with ids, then refetch over REST.
 /// </summary>
 [Authorize]
-internal sealed class DiscussionsHub(BoardAccess access, DiscussionsDbContext db) : Hub
+internal sealed class DiscussionsHub(BoardAccess access, DiscussionsDbContext db, BoardConnections connections) : Hub
 {
     public async Task JoinBoard(Guid programId)
     {
-        await EnsureAccessAsync(programId);
-        await Groups.AddToGroupAsync(Context.ConnectionId, BoardGroups.Board(programId), Context.ConnectionAborted);
-    }
-
-    public Task LeaveBoard(Guid programId) =>
-        Groups.RemoveFromGroupAsync(Context.ConnectionId, BoardGroups.Board(programId), Context.ConnectionAborted);
-
-    public async Task JoinThread(Guid threadId)
-    {
-        var programId = await db.Threads.AsNoTracking()
-            .Where(t => t.Id == threadId)
-            .Select(t => (Guid?)t.ProgramId)
-            .SingleOrDefaultAsync(Context.ConnectionAborted);
-
-        if (programId is null)
-        {
-            throw new HubException("Thread not found.");
-        }
-
-        await EnsureAccessAsync(programId.Value);
-        await Groups.AddToGroupAsync(Context.ConnectionId, BoardGroups.Thread(threadId), Context.ConnectionAborted);
-    }
-
-    public Task LeaveThread(Guid threadId) =>
-        Groups.RemoveFromGroupAsync(Context.ConnectionId, BoardGroups.Thread(threadId), Context.ConnectionAborted);
-
-    private async Task EnsureAccessAsync(Guid programId)
-    {
-        var user = CurrentUser.From(Context.User!) ?? throw new HubException("Sign in to join a board.");
+        var user = RequireUser();
         var board = await access.OpenAsync(programId, user, Context.ConnectionAborted);
 
         if (!board.IsSuccess)
         {
             throw new HubException(board.Error!.Message);
         }
+
+        await JoinAsync(user, BoardGroups.Board(programId), programId);
+    }
+
+    public Task LeaveBoard(Guid programId) => LeaveAsync(BoardGroups.Board(programId));
+
+    public async Task JoinThread(Guid threadId)
+    {
+        // Same check as the REST endpoints, so hidden threads are only joinable by moderators.
+        var user = RequireUser();
+        var opened = await access.OpenThreadAsync(db, threadId, user, Context.ConnectionAborted);
+
+        if (!opened.IsSuccess)
+        {
+            throw new HubException(opened.Error!.Message);
+        }
+
+        await JoinAsync(user, BoardGroups.Thread(threadId), opened.Value.Thread.ProgramId);
+    }
+
+    public Task LeaveThread(Guid threadId) => LeaveAsync(BoardGroups.Thread(threadId));
+
+    public override Task OnDisconnectedAsync(Exception? exception)
+    {
+        connections.Disconnected(Context.ConnectionId);
+        return base.OnDisconnectedAsync(exception);
+    }
+
+    private CurrentUser RequireUser() => CurrentUser.From(Context.User!) ?? throw new HubException("Sign in to join a board.");
+
+    private async Task JoinAsync(CurrentUser user, string group, Guid programId)
+    {
+        connections.Add(Context.ConnectionId, user, group, programId);
+        await Groups.AddToGroupAsync(Context.ConnectionId, group, Context.ConnectionAborted);
+    }
+
+    private async Task LeaveAsync(string group)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, group, Context.ConnectionAborted);
+        connections.Remove(Context.ConnectionId, group);
     }
 }
 

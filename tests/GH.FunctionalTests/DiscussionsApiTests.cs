@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using GymHub.BuildingBlocks.Paging;
 using GymHub.Modules.Discussions.Data;
+using GymHub.Modules.Subscriptions.Data;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -129,6 +130,7 @@ public class DiscussionsApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     {
         var programId = await BoardAsync();
         var thread = await StartAsync(Member, programId);
+        var answer = await ReplyAsync(Trainer, thread.Id, thread.OpeningPostId);
 
         Assert.Equal(HttpStatusCode.NoContent, (await Trainer.PostAsync($"/api/v1/programs/{programId}/archive", null, Ct)).StatusCode);
 
@@ -137,6 +139,9 @@ public class DiscussionsApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
 
         var reply = await Member.PostAsJsonAsync($"/api/v1/discussions/threads/{thread.Id}/posts", new { parentPostId = thread.OpeningPostId, body = "Hello?" }, Json, Ct);
         Assert.Equal(HttpStatusCode.Conflict, reply.StatusCode);
+
+        Assert.Equal(HttpStatusCode.Conflict, (await Trainer.DeleteAsync($"/api/v1/discussions/posts/{answer.Id}", Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await Member.PutAsJsonAsync($"/api/v1/discussions/threads/{thread.Id}/answer", new { postId = answer.Id }, Json, Ct)).StatusCode);
     }
 
     [Fact]
@@ -206,6 +211,9 @@ public class DiscussionsApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
 
         Assert.Equal(HttpStatusCode.Forbidden, (await Member.GetAsync("/api/v1/discussions/reports", Ct)).StatusCode);
 
+        // The author can't delete it away (and its reports with it) while it's under review.
+        Assert.Equal(HttpStatusCode.Conflict, (await Member.DeleteAsync($"/api/v1/discussions/posts/{rude.Id}", Ct)).StatusCode);
+
         var open = await _admin.GetFromJsonAsync<PagedResult<Report>>("/api/v1/discussions/reports?pageSize=50", Json, Ct);
         var report = Assert.Single(open!.Data, r => r.PostId == rude.Id);
 
@@ -220,6 +228,9 @@ public class DiscussionsApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
 
         var stillOpen = await _admin.GetFromJsonAsync<PagedResult<Report>>("/api/v1/discussions/reports?pageSize=50", Json, Ct);
         Assert.DoesNotContain(stillOpen!.Data, r => r.PostId == rude.Id);
+
+        // Hidden now, so still not deletable by its author.
+        Assert.Equal(HttpStatusCode.Conflict, (await Member.DeleteAsync($"/api/v1/discussions/posts/{rude.Id}", Ct)).StatusCode);
     }
 
     [Fact]
@@ -257,7 +268,49 @@ public class DiscussionsApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.Contains("subscribers", refused.Message);
     }
 
-    private async Task<HubConnection> HubAsync(string userId)
+    [Fact]
+    public async Task Hidden_threads_cannot_be_joined_by_subscribers()
+    {
+        var programId = await BoardAsync();
+        var thread = await StartAsync(Member, programId);
+        Assert.Equal(HttpStatusCode.NoContent, (await Trainer.PatchAsJsonAsync($"/api/v1/discussions/threads/{thread.Id}/moderation", new { hidden = true }, Json, Ct)).StatusCode);
+
+        await using var subscriber = await HubAsync(_memberId);
+        await Assert.ThrowsAsync<HubException>(() => subscriber.InvokeAsync("JoinThread", thread.Id, Ct));
+
+        await using var trainer = await HubAsync(_trainerId, "trainer");
+        await trainer.InvokeAsync("JoinThread", thread.Id, Ct);
+    }
+
+    [Fact]
+    public async Task Leaving_a_program_stops_its_live_updates()
+    {
+        var programId = await BoardAsync();
+
+        await using var member = await HubAsync(_memberId);
+        var memberHeard = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        member.On<Guid, Guid>("threadChanged", (_, _) => memberHeard.TrySetResult());
+        await member.InvokeAsync("JoinBoard", programId, Ct);
+
+        await using var trainer = await HubAsync(_trainerId, "trainer");
+        var trainerHeard = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        trainer.On<Guid, Guid>("threadChanged", (_, _) => trainerHeard.TrySetResult());
+        await trainer.InvokeAsync("JoinBoard", programId, Ct);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await Member.DeleteAsync($"/api/v1/subscriptions/programs/{programId}", Ct)).StatusCode);
+        while (await factory.DispatchOutboxAsync<SubscriptionsDbContext>() > 0)
+        {
+        }
+
+        await StartAsync(Trainer, programId, "General", "Members only");
+
+        // Both are sent in one group broadcast; once the trainer has it, the member would have too.
+        await trainerHeard.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        await Task.Delay(TimeSpan.FromMilliseconds(500), Ct);
+        Assert.False(memberHeard.Task.IsCompleted);
+    }
+
+    private async Task<HubConnection> HubAsync(string userId, string roles = "")
     {
         var connection = new HubConnectionBuilder()
             .WithUrl(new Uri(factory.Server.BaseAddress, "/api/v1/discussions/hub"), options =>
@@ -265,7 +318,7 @@ public class DiscussionsApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
                 options.HttpMessageHandlerFactory = _ => factory.Server.CreateHandler();
                 options.Transports = HttpTransportType.LongPolling;
                 options.Headers[TestAuthHandler.UserHeader] = userId;
-                options.Headers[TestAuthHandler.RolesHeader] = "";
+                options.Headers[TestAuthHandler.RolesHeader] = roles;
             })
             .Build();
 

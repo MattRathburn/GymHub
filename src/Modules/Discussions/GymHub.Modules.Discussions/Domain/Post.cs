@@ -101,6 +101,12 @@ public sealed class Post
             return false;
         }
 
+        // A hidden post stays for moderators to review; letting its author delete it would also drop its reports.
+        if (IsHidden)
+        {
+            return Error.Conflict("This post was removed by a moderator.");
+        }
+
         if (!hasReplies)
         {
             return true;
