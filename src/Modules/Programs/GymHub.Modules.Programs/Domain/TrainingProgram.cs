@@ -132,6 +132,15 @@ public sealed class TrainingProgram
             return Result.Success();
         }
 
+        // Stripe subscriptions can't switch currency, so existing subscribers couldn't move to the new price.
+        if (Status == ProgramStatus.Published
+            && current.Price.Model == PricingModel.Recurring
+            && price.Model == PricingModel.Recurring
+            && price.Currency != current.Price.Currency)
+        {
+            return Error.Conflict("The currency of a published subscription program can't be changed.");
+        }
+
         IsFree = price.IsFree;
 
         if (Status == ProgramStatus.Draft)
@@ -436,6 +445,10 @@ public sealed class TrainingProgram
             => Error.Invalid("One-time pricing needs a positive amount and a currency, and no billing interval."),
         PricingModel.Recurring when price.AmountMinor is not > 0 || string.IsNullOrEmpty(price.Currency) || price.Interval is null
             => Error.Invalid("Recurring pricing needs a positive amount, a currency and a billing interval."),
+        PricingModel.Recurring when price.TrialDays is < 0 or > ProgramPrice.MaxTrialDays
+            => Error.Invalid($"A free trial can be up to {ProgramPrice.MaxTrialDays} days."),
+        not PricingModel.Recurring when price.TrialDays is not null
+            => Error.Invalid("Only subscription programs can have a free trial."),
         _ => null
     };
 }

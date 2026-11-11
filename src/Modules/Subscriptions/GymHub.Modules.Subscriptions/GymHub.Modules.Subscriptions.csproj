@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\BuildingBlocks\GymHub.BuildingBlocks\GymHub.BuildingBlocks.csproj" />
     <ProjectReference Include="..\GymHub.Modules.Subscriptions.Contracts\GymHub.Modules.Subscriptions.Contracts.csproj" />
+    <ProjectReference Include="..\..\Billing\GymHub.Modules.Billing.Contracts\GymHub.Modules.Billing.Contracts.csproj" />
     <ProjectReference Include="..\..\Programs\GymHub.Modules.Programs.Contracts\GymHub.Modules.Programs.Contracts.csproj" />
   </ItemGroup>
 

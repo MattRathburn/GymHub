@@ -86,6 +86,7 @@ public sealed class ProgramsDbContext(DbContextOptions<ProgramsDbContext> option
             p.Property(x => x.AmountMinor).HasColumnName("AmountMinor");
             p.Property(x => x.Currency).HasMaxLength(3).HasColumnName("Currency");
             p.Property(x => x.Interval).HasConversion<string>().HasMaxLength(20).HasColumnName("Interval");
+            p.Property(x => x.TrialDays).HasColumnName("TrialDays");
         });
     }
 

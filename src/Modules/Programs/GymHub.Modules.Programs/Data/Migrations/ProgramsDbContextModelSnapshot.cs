@@ -165,6 +165,10 @@ namespace GymHub.Modules.Programs.Data.Migrations
                                 .HasMaxLength(20)
                                 .HasColumnType("character varying(20)")
                                 .HasColumnName("Model");
+
+                            b1.Property<int?>("TrialDays")
+                                .HasColumnType("integer")
+                                .HasColumnName("TrialDays");
                         });
 
                     b.HasKey("ProgramId", "Version");

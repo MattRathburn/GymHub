@@ -1,7 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { catchError, firstValueFrom, of } from 'rxjs';
 import { LoadState, toLoadState } from '../../core/http/load-state';
+import { problemMessage } from '../../core/http/problem';
+import { Purchase, nextPriceLine, purchaseStatusLine } from '../billing/billing.model';
+import { BillingService, goToStripe } from '../billing/billing.service';
 import { MyEnrollment } from './subscription.model';
 import { SubscriptionsService } from './subscriptions.service';
 
@@ -11,7 +15,15 @@ import { SubscriptionsService } from './subscriptions.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto max-w-3xl px-4 py-8">
-      <h1 class="text-2xl font-semibold">My programs</h1>
+      <div class="flex items-center justify-between gap-4">
+        <h1 class="text-2xl font-semibold">My programs</h1>
+        @if (purchases().length > 0) {
+          <button class="btn-secondary" [disabled]="busy()" (click)="manageBilling()">Manage billing</button>
+        }
+      </div>
+      @if (error(); as message) {
+        <p class="mt-2 text-sm text-rose-600">{{ message }}</p>
+      }
 
       @switch (enrollments().status) {
         @case ('loading') {
@@ -29,9 +41,17 @@ import { SubscriptionsService } from './subscriptions.service';
               <li>
                 <a [routerLink]="['/programs', enrollment.programId]" class="card flex justify-between hover:shadow-md">
                   <span class="font-medium">{{ enrollment.programTitle ?? 'Program' }}</span>
-                  @if (enrollment.programStatus === 'Archived') {
-                    <span class="text-xs text-slate-500">Archived by trainer</span>
-                  }
+                  <span class="text-right text-xs text-slate-500">
+                    @if (purchaseFor(enrollment.programId); as purchase) {
+                      <span class="block">{{ statusLine(purchase) }}</span>
+                      @if (nextPrice(purchase); as next) {
+                        <span class="block text-amber-700">{{ next }}</span>
+                      }
+                    }
+                    @if (enrollment.programStatus === 'Archived') {
+                      <span class="block">Archived by trainer</span>
+                    }
+                  </span>
                 </a>
               </li>
             } @empty {
@@ -47,6 +67,33 @@ import { SubscriptionsService } from './subscriptions.service';
 })
 export class MySubscriptionsComponent {
   private readonly subscriptions = inject(SubscriptionsService);
+  private readonly billing = inject(BillingService);
+
+  protected readonly busy = signal(false);
+  protected readonly error = signal<string | null>(null);
+  protected readonly statusLine = purchaseStatusLine;
+  protected readonly nextPrice = nextPriceLine;
+
+  protected readonly purchases = toSignal(this.billing.mine().pipe(catchError(() => of([] as Purchase[]))), {
+    initialValue: [] as Purchase[],
+  });
+
+  private readonly purchasesByProgram = computed(() => new Map(this.purchases().map((p) => [p.programId, p])));
+
+  protected purchaseFor(programId: string): Purchase | undefined {
+    return this.purchasesByProgram().get(programId);
+  }
+
+  protected async manageBilling(): Promise<void> {
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      goToStripe((await firstValueFrom(this.billing.portal())).url);
+    } catch (error) {
+      this.error.set(problemMessage(error));
+      this.busy.set(false);
+    }
+  }
 
   protected readonly enrollments = toSignal(this.subscriptions.mine().pipe(toLoadState()), {
     initialValue: { status: 'loading' } as LoadState<MyEnrollment[]>,

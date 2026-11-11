@@ -104,6 +104,7 @@ public class ProgramsApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     [Fact]
     public async Task Paid_programs_cannot_be_joined_for_free()
     {
+        await factory.MarkPayoutsReadyAsync("trainer-1");
         var id = await PublishedProgramAsync(new { model = "Recurring", amountMinor = 1999, currency = "USD", interval = "Monthly" });
 
         var enrolled = await _member.PutAsync($"/api/v1/subscriptions/programs/{id}", null, Ct);

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using GymHub.BuildingBlocks.Auth;
 using GymHub.BuildingBlocks.Results;
+using GymHub.Modules.Billing.Contracts;
 using GymHub.Modules.Programs.Data;
 using GymHub.Modules.Programs.Features.Shared;
 using Microsoft.AspNetCore.Builder;
@@ -8,7 +9,7 @@ using Microsoft.AspNetCore.Routing;
 
 namespace GymHub.Modules.Programs.Features.PublishProgram;
 
-internal sealed class PublishProgramHandler(ProgramsDbContext db, TimeProvider timeProvider)
+internal sealed class PublishProgramHandler(ProgramsDbContext db, IPayoutReadiness payouts, TimeProvider timeProvider)
 {
     public async Task<Result> Handle(Guid programId, CurrentUser user, CancellationToken cancellationToken)
     {
@@ -19,7 +20,14 @@ internal sealed class PublishProgramHandler(ProgramsDbContext db, TimeProvider t
             return loaded.Error!;
         }
 
-        var result = loaded.Value!.Publish(timeProvider.UtcNow());
+        var program = loaded.Value!;
+
+        if (!program.CurrentPrice.Price.IsFree && !await payouts.IsReadyAsync(program.TrainerId, cancellationToken))
+        {
+            return Error.Conflict(PayoutsRequired.Message);
+        }
+
+        var result = program.Publish(timeProvider.UtcNow());
 
         if (result.IsSuccess)
         {

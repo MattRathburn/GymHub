@@ -6,6 +6,9 @@ using EventBus.Abstractions;
 using GymHub.BuildingBlocks.Outbox;
 using GymHub.BuildingBlocks.Persistence;
 using GymHub.BuildingBlocks.Storage;
+using GymHub.Modules.Billing.Data;
+using GymHub.Modules.Billing.Domain;
+using GymHub.Modules.Billing.Payments;
 using GymHub.Modules.Discussions.Data;
 using GymHub.Modules.Programs.Contracts;
 using GymHub.Modules.Programs.Data;
@@ -37,6 +40,11 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     internal FakeIdentityAdmin IdentityAdmin { get; } = new();
 
+    internal FakeStripeGateway Stripe { get; } = new();
+
+    /// <summary>Signing secret the API accepts for Stripe webhooks in tests.</summary>
+    public const string WebhookSecret = "whsec_test_secret";
+
     public async ValueTask InitializeAsync()
     {
         await _postgres.StartAsync();
@@ -46,6 +54,24 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await scope.ServiceProvider.GetRequiredService<SubscriptionsDbContext>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<TrainersDbContext>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<DiscussionsDbContext>().Database.MigrateAsync();
+        await scope.ServiceProvider.GetRequiredService<BillingDbContext>().Database.MigrateAsync();
+    }
+
+    /// <summary>Gives a trainer a Stripe account that can take charges, as finished onboarding would.</summary>
+    public async Task MarkPayoutsReadyAsync(string trainerId)
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<BillingDbContext>();
+
+        if (await db.PayoutAccounts.SingleOrDefaultAsync(a => a.TrainerId == trainerId) is { IsReady: true })
+        {
+            return;
+        }
+
+        var account = new PayoutAccount(trainerId, $"acct_{Guid.NewGuid():N}", DateTime.UtcNow);
+        account.Update(chargesEnabled: true, payoutsEnabled: true, detailsSubmitted: true, DateTime.UtcNow);
+        db.PayoutAccounts.Add(account);
+        await db.SaveChangesAsync();
     }
 
     public new async ValueTask DisposeAsync()
@@ -60,6 +86,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting($"ConnectionStrings:{PersistenceExtensions.ConnectionName}", _postgres.GetConnectionString());
         builder.UseSetting($"ConnectionStrings:{ObjectStorageExtensions.ConnectionName}", "Endpoint=http://localhost:1;AccessKey=test;SecretKey=test");
         builder.UseSetting("services:keycloak:http:0", "http://localhost:1");
+        builder.UseSetting("Billing:StripeWebhookSecret", WebhookSecret);
+        builder.UseSetting("Billing:PublicBaseUrl", "https://gymhub.test/");
 
         builder.ConfigureTestServices(services =>
         {
@@ -67,6 +95,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             services.RemoveHostedService<OutboxDispatcher>();
             services.AddSingleton<IObjectStorage, FakeObjectStorage>();
             services.AddSingleton<IIdentityAdmin>(IdentityAdmin);
+            services.AddSingleton<IStripeGateway>(Stripe);
 
             services.AddSingleton(PublishedEvents);
             services.AddIntegrationEventHandler<ProgramPublished, RecordingHandlerAdapter<ProgramPublished>>();

@@ -14,7 +14,8 @@ Welcome to the **Gym Hub**! Trainers build workout programs and grow a following
 ## Features
 - Trainers author structured programs: weeks → days → workouts → exercises, with notes, images and video
 - Fixed-date or ongoing programs, with each week released on a calendar date
-- Free, one-time or recurring pricing set by the trainer *(paid checkout with Stripe Connect is planned)*
+- Free, one-time or recurring pricing set by the trainer, with optional free trials
+- Payments through Stripe Connect: trainers onboard a Stripe Express account, members pay with Stripe Checkout, GymHub keeps a platform fee, and refunds end access
 - Trainers apply and an admin approves them; public trainer profiles you can follow
 - Subscriber-only discussion board per program: questions with answers, nested replies, live updates, and moderation with a report queue
 - Workout logging and progress tracking *(planned)*
@@ -58,6 +59,13 @@ See [.github/instructions/dotnet-instructions.md](.github/instructions/dotnet-in
    dotnet user-secrets set "Parameters:media-access-key" "<random>" --project src/GymHub.AppHost
    dotnet user-secrets set "Parameters:media-secret-key" "<random>" --project src/GymHub.AppHost
    ```
+   Optional, for paid programs: a Stripe test-mode secret key and the webhook signing secret printed by the [Stripe CLI](https://docs.stripe.com/stripe-cli):
+   ```bash
+   stripe listen --forward-to https://localhost:7179/stripe/webhook
+   dotnet user-secrets set "Parameters:stripe-secret-key" "sk_test_..." --project src/GymHub.AppHost
+   dotnet user-secrets set "Parameters:stripe-webhook-secret" "whsec_..." --project src/GymHub.AppHost
+   ```
+   Never commit these keys.
 3. Start everything. Aspire starts Postgres, Keycloak, object storage, the migrations, the API, the Gateway and the Angular app:
    ```bash
    dotnet run --project src/GymHub.AppHost
@@ -72,6 +80,8 @@ The functional tests need Docker. For the Angular tests, run `npm test` in `src/
 
 ## Usage
 Sign in as `trainer`, open **Trainer studio**, create a program, then add weeks, days and workouts and publish it. Sign in as `member` to find the program, subscribe, and see the weeks released so far. Subscribers, the trainer and admins open the program's **Discussion board** to ask questions and reply; `admin` reviews reported posts under **Reports**.
+
+To sell a program, the trainer opens **Payouts** and finishes Stripe's onboarding, then gives the program a one-time or subscription price before publishing. Members buy with Stripe's test card `4242 4242 4242 4242`, manage subscriptions under **My programs → Manage billing**, and trainers refund sales from **Payouts**. Admins see every purchase under **Purchases**.
 
 ## Contributing
 We welcome contributions! Please read our Contributing Guidelines for more details.

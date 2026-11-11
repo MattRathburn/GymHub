@@ -57,6 +57,12 @@ export const appRoutes: Route[] = [
     loadComponent: () => import('./features/trainers/studio-profile.component').then((m) => m.StudioProfileComponent),
   },
   {
+    path: 'studio/payouts',
+    title: 'GymHub · Payouts',
+    canActivate: [trainerGuard],
+    loadComponent: () => import('./features/billing/payouts.component').then((m) => m.PayoutsComponent),
+  },
+  {
     path: 'trainers/apply',
     title: 'GymHub · Become a trainer',
     canActivate: [authGuard],
@@ -85,6 +91,12 @@ export const appRoutes: Route[] = [
     title: 'GymHub · Reported posts',
     canActivate: [adminGuard],
     loadComponent: () => import('./features/discussions/admin/reports.component').then((m) => m.ReportsComponent),
+  },
+  {
+    path: 'admin/purchases',
+    title: 'GymHub · Purchases',
+    canActivate: [adminGuard],
+    loadComponent: () => import('./features/billing/admin/purchases.component').then((m) => m.PurchasesComponent),
   },
   { path: '**', redirectTo: '' },
 ];

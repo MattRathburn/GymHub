@@ -11,6 +11,8 @@ export interface ProgramPrice {
   amountMinor: number | null;
   currency: string | null;
   interval: BillingInterval | null;
+  /** Free trial for subscriptions only. */
+  trialDays?: number | null;
 }
 
 export interface PagedResult<T> {
@@ -180,4 +182,9 @@ export function formatPrice(price: ProgramPrice): string {
   );
 
   return price.model === 'Recurring' ? `${amount} / ${price.interval === 'Yearly' ? 'year' : 'month'}` : amount;
+}
+
+/** "7-day free trial", or null. */
+export function formatTrial(price: ProgramPrice): string | null {
+  return price.model === 'Recurring' && price.trialDays ? `${price.trialDays}-day free trial` : null;
 }

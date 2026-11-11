@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 GymHub is a workout-program platform: trainers (approved by an admin) publish programs, users subscribe or buy them, and each program gets a subscriber-only discussion board. It is a **modular monolith with vertical slices** on .NET 10 + Aspire, with a YARP **BFF** (`Gateway`), **Keycloak** auth, PostgreSQL, S3-compatible media storage, and an Angular 21 frontend.
 
-Built so far: the foundation and the **Programs**, **Trainers** (applications, profiles, follows, member profiles) and **Discussions** modules, plus a minimal **Subscriptions** module (free enrollment only). Planned modules, each with its own plan: Billing (Stripe Connect), Training Log, Notifications, Reviews. Plans live in `docs/plans/`.
+Built so far: the foundation and the **Programs**, **Subscriptions**, **Trainers** (applications, profiles, follows, member profiles), **Discussions** and **Billing** (Stripe Connect) modules. Planned modules, each with its own plan: Training Log, Notifications, Reviews. Plans live in `docs/plans/`.
 
 The root `README.md` is partly stale; trust the code, `GymHub.AppHost/Program.cs` and `.github/instructions/` over it.
 
@@ -36,6 +36,8 @@ Build settings that bite: **`TreatWarningsAsErrors`** is on (xUnit analyzers inc
 ### Local secrets and seed data
 
 AppHost user-secrets must hold `Parameters:bff-client-secret`, `Parameters:media-access-key` and `Parameters:media-secret-key`. The bff secret is injected into both Keycloak's realm import and the Gateway.
+
+Stripe is optional: with `Parameters:stripe-secret-key` (an `sk_test_` key) and `Parameters:stripe-webhook-secret` (the `whsec_` value from `stripe listen --forward-to https://localhost:7179/stripe/webhook`) set, the AppHost passes them to the API as `Billing__*`. Without them the app runs and paid features answer "Payments aren't configured". Never commit these keys.
 
 `src/GymHub.AppHost/Realms/GH-Test-Realm-realm.json` seeds users `member`, `trainer` and `admin` with dev passwords. The file name must be `<realm>-realm.json`. Keycloak imports it only into an empty data volume (`IGNORE_EXISTING`), and Aspire copies it into that volume, so realm changes need a fresh volume.
 
@@ -76,6 +78,14 @@ AppHost user-secrets must hold `Parameters:bff-client-secret`, `Parameters:media
 - The trainer/admin pins, locks and hides; anyone reports a post; admins review reports at `/discussions/reports`.
 - Live updates: `DiscussionsHub` (SignalR) at `/api/v1/discussions/hub`, proxied by the Gateway like any API call. Messages carry ids only (`threadChanged`); clients refetch over REST so per-viewer access applies. In-memory, single instance.
 - The Gateway's XSRF check accepts WebSocket handshakes by `Origin` (browsers can't send the header, and HTTP/2 handshakes are CONNECT requests).
+
+**Billing module:**
+- Stripe Connect **Express** accounts with **destination charges**; GymHub keeps `Billing:PlatformFeePercent`. Every Stripe call goes through `IStripeGateway` (faked in functional tests) with idempotency keys from GymHub ids.
+- Members pay on Stripe Checkout and manage subscriptions in the Customer Portal. A `Purchase` per checkout; Stripe products/prices are created lazily per program price version (`CatalogPrice`).
+- `POST /api/v1/billing/webhooks/stripe` (anonymous, signature-verified, deduplicated by event id) drives purchases. The Gateway forwards `/stripe/webhook` there, outside `/gh-api/`, so no XSRF check or token applies.
+- Billing raises `PaidAccessGranted` / `PaidAccessEnded` / `PaidAccessConvertedToFree`; Subscriptions turns them into `Enrollment(Source = Stripe, PurchaseId)` and only ends access for the matching purchase.
+- Price changes of a published subscription program move subscribers at renewal (Subscription Schedules); becoming free keeps them as free members; archiving stops renewals. Programs blocks currency changes on published subscriptions and needs `IPayoutReadiness` before selling.
+- Trainers refund their own sales for `Billing:TrainerRefundWindowDays` (30); admins any time. Disputes end access.
 
 **Other projects:** `GymHub.MigrationService` migrates every module and then exits; the API `WaitForCompletion`s it. `EventBusRabbitMQ` is kept but unused.
 

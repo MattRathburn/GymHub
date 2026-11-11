@@ -91,9 +91,19 @@
                 <option value="Monthly">Monthly</option>
                 <option value="Yearly">Yearly</option>
               </select>
+              <label class="block text-sm text-slate-600">
+                Free trial (days, 0 for none)
+                <input class="input mt-1" type="number" min="0" max="30" formControlName="trialDays" />
+              </label>
+              @if (p.status === 'Published') {
+                <p class="text-xs text-slate-500">Existing subscribers move to a new price at their next renewal.</p>
+              }
             }
+            <p class="text-xs text-slate-500">
+              Paid programs need <a routerLink="/studio/payouts" class="text-indigo-600 underline">payouts set up</a> before they can be published.
+            </p>
           }
-          <button class="btn-primary" type="submit" [disabled]="busy() || isArchived()">Save pricing</button>
+          <button class="btn-primary" type="submit" [disabled]="pricing.invalid || busy() || isArchived()">Save pricing</button>
         </form>
 
         <!-- Cover -->
