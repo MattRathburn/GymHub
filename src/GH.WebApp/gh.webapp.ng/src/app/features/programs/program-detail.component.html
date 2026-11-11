@@ -31,18 +31,37 @@
 
       <div class="card min-w-56 text-center">
         <p class="text-xl font-semibold">{{ formatPrice(p.price) }}</p>
+        @if (formatTrial(p.price); as trial) {
+          <p class="text-sm text-emerald-700">{{ trial }}</p>
+        }
 
         @if (needsSignIn()) {
           <button class="btn-primary mt-3 w-full" (click)="auth.login()">Sign in to subscribe</button>
         } @else if (canSubscribe()) {
-          @if (p.price.model === 'Free') {
+          @if (confirmingPayment()) {
+            <p class="mt-3 text-sm text-slate-600">Confirming your payment…</p>
+          } @else if (p.price.model === 'Free') {
             <button class="btn-primary mt-3 w-full" [disabled]="busy()" (click)="subscribe()">Subscribe</button>
           } @else {
-            <p class="mt-3 text-sm text-slate-500">Paid checkout is coming soon.</p>
+            <button class="btn-primary mt-3 w-full" [disabled]="busy()" (click)="buy()">
+              {{ p.price.model === 'Recurring' ? (formatTrial(p.price) ? 'Start free trial' : 'Subscribe') : 'Buy' }}
+            </button>
+            @if (paymentSlow()) {
+              <p class="mt-2 text-sm text-amber-700">Your payment is still being confirmed. Refresh in a minute.</p>
+            } @else if (checkout() === 'cancelled') {
+              <p class="mt-2 text-sm text-slate-500">Checkout was cancelled. You haven't been charged.</p>
+            }
           }
         } @else if (hasAccess() && !isOwner()) {
-          <p class="mt-3 text-sm font-medium text-emerald-700">You're subscribed</p>
-          <button class="btn-secondary mt-2 w-full" [disabled]="busy()" (click)="leave()">Leave program</button>
+          @if (paidAccess(); as purchase) {
+            <p class="mt-3 text-sm font-medium text-emerald-700">{{ purchaseStatusLine(purchase) }}</p>
+            @if (purchase.kind === 'Subscription') {
+              <button class="btn-secondary mt-2 w-full" [disabled]="busy()" (click)="manageBilling()">Manage billing</button>
+            }
+          } @else {
+            <p class="mt-3 text-sm font-medium text-emerald-700">You're subscribed</p>
+            <button class="btn-secondary mt-2 w-full" [disabled]="busy()" (click)="leave()">Leave program</button>
+          }
         } @else if (isOwner()) {
           <p class="mt-3 text-sm text-slate-500">This is your program.</p>
         }

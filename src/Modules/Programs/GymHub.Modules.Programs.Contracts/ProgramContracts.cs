@@ -22,9 +22,14 @@ public enum BillingInterval
     Yearly
 }
 
-/// <summary>A program's price. Amounts are in minor units (cents) of an ISO 4217 currency.</summary>
-public sealed record ProgramPrice(PricingModel Model, long? AmountMinor, string? Currency, BillingInterval? Interval)
+/// <summary>
+/// A program's price. Amounts are in minor units (cents) of an ISO 4217 currency. TrialDays is a free trial for
+/// recurring prices only.
+/// </summary>
+public sealed record ProgramPrice(PricingModel Model, long? AmountMinor, string? Currency, BillingInterval? Interval, int? TrialDays = null)
 {
+    public const int MaxTrialDays = 30;
+
     public static ProgramPrice Free { get; } = new(PricingModel.Free, null, null, null);
 
     public bool IsFree => Model == PricingModel.Free;

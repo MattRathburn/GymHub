@@ -74,6 +74,9 @@ namespace GymHub.Modules.Subscriptions.Data.Migrations
                     b.Property<Guid>("ProgramId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("PurchaseId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Source")
                         .IsRequired()
                         .HasMaxLength(20)

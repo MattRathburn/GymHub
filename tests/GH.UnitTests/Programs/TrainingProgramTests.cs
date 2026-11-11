@@ -95,6 +95,31 @@ public class TrainingProgramTests
         Assert.Equal(ErrorKind.Invalid, result.Error?.Kind);
     }
 
+    [Theory]
+    [InlineData(PricingModel.Recurring, 31)]
+    [InlineData(PricingModel.OneTime, 7)]
+    public void Trials_are_for_subscriptions_and_up_to_30_days(PricingModel model, int trialDays)
+    {
+        var interval = model == PricingModel.Recurring ? BillingInterval.Monthly : (BillingInterval?)null;
+
+        var result = Ongoing().SetPricing(new ProgramPrice(model, 1000, "USD", interval, trialDays), Now);
+
+        Assert.Equal(ErrorKind.Invalid, result.Error?.Kind);
+    }
+
+    [Fact]
+    public void A_published_subscription_keeps_its_currency()
+    {
+        var program = Ongoing();
+        program.AddWeek("Week 1", Today);
+        program.SetPricing(new ProgramPrice(PricingModel.Recurring, 1999, "USD", BillingInterval.Monthly, 7), Now);
+        program.Publish(Now);
+
+        Assert.Equal(ErrorKind.Conflict, program.SetPricing(new ProgramPrice(PricingModel.Recurring, 1999, "EUR", BillingInterval.Monthly), Now).Error?.Kind);
+        Assert.True(program.SetPricing(new ProgramPrice(PricingModel.Recurring, 2499, "USD", BillingInterval.Yearly), Now).IsSuccess);
+        Assert.True(program.SetPricing(new ProgramPrice(PricingModel.OneTime, 9900, "EUR", null), Now).IsSuccess);
+    }
+
     [Fact]
     public void Only_weeks_on_or_before_today_are_released()
     {

@@ -65,6 +65,11 @@ internal sealed class EnrollHandler(SubscriptionsDbContext db, IProgramCatalog c
             return Error.NotFound("You're not subscribed to this program.");
         }
 
+        if (enrollment.Source == EnrollmentSource.Stripe)
+        {
+            return Error.Conflict("This is a paid subscription. Cancel it from Manage billing.");
+        }
+
         enrollment.Cancel(timeProvider.GetUtcNow().UtcDateTime);
         db.AddIntegrationEvent(new EnrollmentCancelled(user.Id, programId));
         await db.SaveChangesAsync(cancellationToken);

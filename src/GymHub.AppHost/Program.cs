@@ -68,6 +68,21 @@ var gateway = builder.AddProject<Projects.Gateway>("gateway")
     .WaitFor(keycloak)
     .WithExternalHttpEndpoints();
 
+// Stripe (Billing). Optional: without stripe-secret-key in user-secrets the app runs and paid features report that
+// payments aren't configured. stripe-webhook-secret is the whsec_ value printed by `stripe listen`; without it,
+// checkout works but webhooks are rejected, so purchases never grant access.
+api.WithEnvironment("Billing__PublicBaseUrl", gateway.GetEndpoint("https"));
+
+if (!string.IsNullOrEmpty(builder.Configuration["Parameters:stripe-secret-key"]))
+{
+    api.WithEnvironment("Billing__StripeSecretKey", builder.AddParameter("stripe-secret-key", secret: true));
+}
+
+if (!string.IsNullOrEmpty(builder.Configuration["Parameters:stripe-webhook-secret"]))
+{
+    api.WithEnvironment("Billing__StripeWebhookSecret", builder.AddParameter("stripe-webhook-secret", secret: true));
+}
+
 // Browsers upload and download media straight from storage with presigned URLs, from the Gateway's origin.
 // (Built from the host port: inside the container the endpoint itself resolves to host.docker.internal.)
 mediaStore.WithEnvironment("RUSTFS_CORS_ALLOWED_ORIGINS", ReferenceExpression.Create(

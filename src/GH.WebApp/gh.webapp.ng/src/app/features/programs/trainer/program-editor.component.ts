@@ -59,6 +59,7 @@ export class ProgramEditorComponent {
     amount: [0],
     currency: ['USD'],
     interval: ['Monthly' as BillingInterval],
+    trialDays: [0, [Validators.min(0), Validators.max(30)]],
   });
 
   protected readonly newWeek = this.fb.group({
@@ -100,6 +101,7 @@ export class ProgramEditorComponent {
         amount: (p.price.amountMinor ?? 0) / 100,
         currency: p.price.currency ?? 'USD',
         interval: p.price.interval ?? 'Monthly',
+        trialDays: p.price.trialDays ?? 0,
       });
     });
   }
@@ -152,6 +154,7 @@ export class ProgramEditorComponent {
         amountMinor: free ? null : Math.round(v.amount * 100),
         currency: free ? null : v.currency.toUpperCase(),
         interval: v.model === 'Recurring' ? v.interval : null,
+        trialDays: v.model === 'Recurring' && v.trialDays > 0 ? v.trialDays : null,
       }),
       'Pricing saved.',
     );

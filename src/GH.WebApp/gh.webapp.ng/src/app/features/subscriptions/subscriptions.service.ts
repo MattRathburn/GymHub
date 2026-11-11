@@ -13,7 +13,7 @@ export class SubscriptionsService {
     return this.http.get<MyEnrollment[]>(`${this.baseUrl}/mine`);
   }
 
-  /** Free programs only; paid ones answer 402 until checkout exists. */
+  /** Free programs only; paid ones answer 402 and go through Billing's checkout. */
   enroll(programId: string): Observable<void> {
     return this.http.put<void>(`${this.baseUrl}/programs/${programId}`, null);
   }
