@@ -24,3 +24,17 @@ public sealed record PaidAccessEnded(string UserId, Guid ProgramId, Guid Purchas
 
 /// <summary>The program became free, so the buyer keeps access as a free member.</summary>
 public sealed record PaidAccessConvertedToFree(string UserId, Guid ProgramId, Guid PurchaseId) : IntegrationEvent;
+
+/// <summary>A program was bought or subscribed to (trials included). For the trainer's "new subscriber" news.</summary>
+public sealed record ProgramSold(string TrainerId, Guid ProgramId, string UserId, Guid PurchaseId, bool IsSubscription) : IntegrationEvent;
+
+/// <summary>A subscriber moves to a new price at their next renewal. Interval is "Monthly" or "Yearly".</summary>
+public sealed record SubscriptionPriceChangeScheduled(
+    string UserId, Guid ProgramId, Guid PurchaseId, int PriceVersion, long AmountMinor, string Currency, string Interval, DateTime? EffectiveAt)
+    : IntegrationEvent;
+
+/// <summary>A subscription's free trial ends soon (Stripe warns 3 days ahead).</summary>
+public sealed record SubscriptionTrialEnding(string UserId, Guid ProgramId, Guid PurchaseId, DateTime? TrialEndsAt) : IntegrationEvent;
+
+/// <summary>A renewal payment failed; Stripe is retrying and access continues for now.</summary>
+public sealed record SubscriptionPaymentFailed(string UserId, Guid ProgramId, Guid PurchaseId) : IntegrationEvent;

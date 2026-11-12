@@ -3,6 +3,7 @@ using GymHub.Modules.Billing;
 using GymHub.Modules.Billing.Contracts;
 using GymHub.Modules.Discussions;
 using GymHub.Modules.Discussions.Contracts;
+using GymHub.Modules.Notifications;
 using GymHub.Modules.Programs;
 using GymHub.Modules.Programs.Contracts;
 using GymHub.Modules.Subscriptions;
@@ -24,7 +25,8 @@ public class ModuleBoundaryTests
         typeof(SubscriptionsModule).Assembly,
         typeof(TrainersModule).Assembly,
         typeof(DiscussionsModule).Assembly,
-        typeof(BillingModule).Assembly
+        typeof(BillingModule).Assembly,
+        typeof(NotificationsModule).Assembly
     ];
 
     private static readonly Assembly[] ContractAssemblies =

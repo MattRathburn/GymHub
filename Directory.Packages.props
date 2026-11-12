@@ -66,6 +66,7 @@
     <PackageVersion Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" />
     <PackageVersion Include="Pgvector" Version="0.3.2" />
       <PackageVersion Include="Pgvector.EntityFrameworkCore" Version="0.2.2" />
+    <PackageVersion Include="MailKit" Version="5.0.0" />
     <PackageVersion Include="Stripe.net" Version="53.1.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
     <!-- Version together with runtime -->

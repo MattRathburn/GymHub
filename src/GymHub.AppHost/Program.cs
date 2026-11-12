@@ -43,6 +43,11 @@ builder.AddRedis("plancache")
     .WithDataVolume()
     .WithRedisInsight();
 
+// Catches every notification email locally; its web UI lists them. No secrets needed.
+var mailpit = builder.AddContainer("mailpit", "axllent/mailpit", "v1.27")
+    .WithEndpoint(targetPort: 1025, name: "smtp")
+    .WithHttpEndpoint(targetPort: 8025, name: "http");
+
 var migrations = builder.AddProject<Projects.GymHub_MigrationService>("gymhub-migrations")
     .WithReference(gymhubDb)
     .WaitFor(gymhubDb);
@@ -52,6 +57,10 @@ var api = builder.AddProject<Projects.GymHub_Api>("gymhub-api")
     .WithReference(keycloak)
     .WithReference(media)
     .WithEnvironment("KeycloakAdmin__ClientSecret", apiAdminClientSecret)
+    .WithEnvironment("Notifications__Smtp__Host", mailpit.GetEndpoint("smtp").Property(EndpointProperty.Host))
+    .WithEnvironment("Notifications__Smtp__Port", mailpit.GetEndpoint("smtp").Property(EndpointProperty.Port))
+    .WithEnvironment("Notifications__EmailUnverifiedAddresses", "true")
+    .WaitFor(mailpit)
     .WaitFor(mediaStore)
     .WaitForCompletion(migrations);
 
@@ -71,7 +80,8 @@ var gateway = builder.AddProject<Projects.Gateway>("gateway")
 // Stripe (Billing). Optional: without stripe-secret-key in user-secrets the app runs and paid features report that
 // payments aren't configured. stripe-webhook-secret is the whsec_ value printed by `stripe listen`; without it,
 // checkout works but webhooks are rejected, so purchases never grant access.
-api.WithEnvironment("Billing__PublicBaseUrl", gateway.GetEndpoint("https"));
+api.WithEnvironment("Billing__PublicBaseUrl", gateway.GetEndpoint("https"))
+    .WithEnvironment("Notifications__PublicBaseUrl", gateway.GetEndpoint("https"));
 
 if (!string.IsNullOrEmpty(builder.Configuration["Parameters:stripe-secret-key"]))
 {

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 GymHub is a workout-program platform: trainers (approved by an admin) publish programs, users subscribe or buy them, and each program gets a subscriber-only discussion board. It is a **modular monolith with vertical slices** on .NET 10 + Aspire, with a YARP **BFF** (`Gateway`), **Keycloak** auth, PostgreSQL, S3-compatible media storage, and an Angular 21 frontend.
 
-Built so far: the foundation and the **Programs**, **Subscriptions**, **Trainers** (applications, profiles, follows, member profiles), **Discussions** and **Billing** (Stripe Connect) modules. Planned modules, each with its own plan: Training Log, Notifications, Reviews. Plans live in `docs/plans/`.
+Built so far: the foundation and the **Programs**, **Subscriptions**, **Trainers** (applications, profiles, follows, member profiles), **Discussions**, **Billing** (Stripe Connect) and **Notifications** modules. Planned modules, each with its own plan: Training Log, Reviews. Plans live in `docs/plans/`.
 
 The root `README.md` is partly stale; trust the code, `GymHub.AppHost/Program.cs` and `.github/instructions/` over it.
 
@@ -38,6 +38,8 @@ Build settings that bite: **`TreatWarningsAsErrors`** is on (xUnit analyzers inc
 AppHost user-secrets must hold `Parameters:bff-client-secret`, `Parameters:media-access-key` and `Parameters:media-secret-key`. The bff secret is injected into both Keycloak's realm import and the Gateway.
 
 Stripe is optional: with `Parameters:stripe-secret-key` (an `sk_test_` key) and `Parameters:stripe-webhook-secret` (the `whsec_` value from `stripe listen --forward-to https://localhost:7179/stripe/webhook`) set, the AppHost passes them to the API as `Billing__*`. Without them the app runs and paid features answer "Payments aren't configured". Never commit these keys.
+
+Notification emails go to a **Mailpit** container (web UI linked from the Aspire dashboard); no secrets needed.
 
 `src/GymHub.AppHost/Realms/GH-Test-Realm-realm.json` seeds users `member`, `trainer` and `admin` with dev passwords. The file name must be `<realm>-realm.json`. Keycloak imports it only into an empty data volume (`IGNORE_EXISTING`), and Aspire copies it into that volume, so realm changes need a fresh volume.
 
@@ -87,9 +89,14 @@ Stripe is optional: with `Parameters:stripe-secret-key` (an `sk_test_` key) and 
 - Price changes of a published subscription program move subscribers at renewal (Subscription Schedules); becoming free keeps them as free members; archiving stops renewals. Programs blocks currency changes on published subscriptions and needs `IPayoutReadiness` before selling.
 - Trainers refund their own sales for `Billing:TrainerRefundWindowDays` (30); admins any time. Disputes end access.
 
+**Notifications module:**
+- Handlers under `Handlers/` turn other modules' events into notifications through `NotificationPublisher`, which skips the actor, applies per-type preferences (`NotificationCatalog`: defaults, and billing/access emails locked on) and dedupes by `(UserId, DedupeKey)`. Recipient lookups come from `.Contracts`: `IProgramMembers` (Subscriptions), `IFollowers` (Trainers), `IProgramCatalog`, `IProfileDirectory`.
+- A notification row is kept even when in-app is off (`ShowInApp = false`) so its dedupe key also covers the email.
+- Emails are queued (`EmailMessage`) in the same `SaveChanges` and sent by `EmailDispatcher` (MailKit SMTP, backoff, 5 attempts). Addresses come from the `email` claim, stored when the bell calls `/unread-count`; unverified ones only when `Notifications:EmailUnverifiedAddresses` (on in the AppHost).
+- `NotificationsHub` at `/api/v1/notifications/hub` sends `notificationsChanged(unreadCount)` to `Clients.User(sub)`; clients refetch over REST. `NotificationCleanupJob` deletes old rows daily.
+
 **Other projects:** `GymHub.MigrationService` migrates every module and then exits; the API `WaitForCompletion`s it. `EventBusRabbitMQ` is kept but unused.
 
 ## Repo tooling
 
 - `.github/instructions/` (dotnet, angular, copilot) describes the conventions above in more depth, and `.github/references/` has review checklists.
-- Husky.Net hooks live in `.husky/`; the pre-commit hook only echoes.

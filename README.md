@@ -19,7 +19,8 @@ Welcome to the **Gym Hub**! Trainers build workout programs and grow a following
 - Trainers apply and an admin approves them; public trainer profiles you can follow
 - Subscriber-only discussion board per program: questions with answers, nested replies, live updates, and moderation with a report queue
 - Workout logging and progress tracking *(planned)*
-- Notifications and reviews *(planned)*
+- Notifications: an in-app inbox with a live unread count, emails, and per-type settings
+- Reviews *(planned)*
 
 ## Technologies
 - **.NET 10** with ASP.NET Core Minimal APIs
@@ -82,6 +83,8 @@ The functional tests need Docker. For the Angular tests, run `npm test` in `src/
 Sign in as `trainer`, open **Trainer studio**, create a program, then add weeks, days and workouts and publish it. Sign in as `member` to find the program, subscribe, and see the weeks released so far. Subscribers, the trainer and admins open the program's **Discussion board** to ask questions and reply; `admin` reviews reported posts under **Reports**.
 
 To sell a program, the trainer opens **Payouts** and finishes Stripe's onboarding, then gives the program a one-time or subscription price before publishing. Members buy with Stripe's test card `4242 4242 4242 4242`, manage subscriptions under **My programs → Manage billing**, and trainers refund sales from **Payouts**. Admins see every purchase under **Purchases**.
+
+The bell in the nav shows notifications live: new weeks, replies, new threads for the trainer, programs from followed trainers, and billing changes. Choose in-app and email per type under **Notifications → Settings**. Locally, emails land in Mailpit, linked from the Aspire dashboard.
 
 ## Contributing
 We welcome contributions! Please read our Contributing Guidelines for more details.

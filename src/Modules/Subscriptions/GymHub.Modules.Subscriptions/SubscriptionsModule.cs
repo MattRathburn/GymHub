@@ -22,6 +22,7 @@ public sealed class SubscriptionsModule : IModule
         builder.AddModuleDbContext<SubscriptionsDbContext>(SubscriptionsDbContext.SchemaName);
 
         builder.Services.AddScoped<IEntitlements, Entitlements>();
+        builder.Services.AddScoped<IProgramMembers, ProgramMembers>();
         builder.Services.AddScoped<EnrollHandler>();
         builder.Services.AddScoped<ListMyEnrollmentsHandler>();
         builder.Services.AddIntegrationEventHandler<PaidAccessGranted, PaidAccessGrantedHandler>();

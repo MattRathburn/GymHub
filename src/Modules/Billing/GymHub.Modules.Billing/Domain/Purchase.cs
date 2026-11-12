@@ -175,6 +175,7 @@ public sealed class Purchase
         LastPaymentAt = now;
         Status = PurchaseStatus.Active;
         _events.Add(new PaidAccessGranted(UserId, ProgramId, Id));
+        _events.Add(new ProgramSold(TrainerId, ProgramId, UserId, Id, Kind == PurchaseKind.Subscription));
     }
 
     /// <summary>Checkout finished for a subscription.</summary>
@@ -195,6 +196,7 @@ public sealed class Purchase
         }
 
         _events.Add(new PaidAccessGranted(UserId, ProgramId, Id));
+        _events.Add(new ProgramSold(TrainerId, ProgramId, UserId, Id, Kind == PurchaseKind.Subscription));
     }
 
     /// <summary>
@@ -237,6 +239,11 @@ public sealed class Purchase
                 End(status == "canceled" ? PaidAccessEndReason.Cancelled : PaidAccessEndReason.Unpaid, now);
                 break;
             case { } mapped:
+                if (mapped == PurchaseStatus.PastDue && Status != PurchaseStatus.PastDue)
+                {
+                    _events.Add(new SubscriptionPaymentFailed(UserId, ProgramId, Id));
+                }
+
                 Status = mapped;
                 break;
         }
@@ -258,6 +265,20 @@ public sealed class Purchase
         ScheduledPriceVersion = version;
         ScheduledAmountMinor = amountMinor;
         ScheduledInterval = interval;
+        _events.Add(new SubscriptionPriceChangeScheduled(
+            UserId, ProgramId, Id, version, amountMinor, Currency, interval.ToString(), CurrentPeriodEnd));
+    }
+
+    /// <summary>Stripe's warning that the free trial ends soon.</summary>
+    public void TrialEnding(DateTime? trialEnd)
+    {
+        if (Status != PurchaseStatus.Trialing)
+        {
+            return;
+        }
+
+        TrialEndsAt = trialEnd ?? TrialEndsAt;
+        _events.Add(new SubscriptionTrialEnding(UserId, ProgramId, Id, TrialEndsAt));
     }
 
     /// <summary>Renewals stop; access lasts until the period ends.</summary>

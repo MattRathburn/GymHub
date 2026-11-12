@@ -31,6 +31,19 @@ export const appRoutes: Route[] = [
     loadComponent: () => import('./features/trainers/member-profile.component').then((m) => m.MemberProfileComponent),
   },
   {
+    path: 'me/notifications',
+    title: 'GymHub · Notifications',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/notifications/inbox.component').then((m) => m.InboxComponent),
+  },
+  {
+    path: 'me/notifications/settings',
+    title: 'GymHub · Notification settings',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/notifications/notification-settings.component').then((m) => m.NotificationSettingsComponent),
+  },
+  {
     path: 'me/programs',
     title: 'GymHub · My programs',
     canActivate: [authGuard],

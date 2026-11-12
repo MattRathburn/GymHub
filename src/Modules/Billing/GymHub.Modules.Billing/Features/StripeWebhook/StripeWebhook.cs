@@ -52,6 +52,9 @@ internal sealed class StripeWebhookHandler(
                 or EventTypes.CustomerSubscriptionUpdated or EventTypes.CustomerSubscriptionDeleted:
                 await SubscriptionChangedAsync(subscription, now, cancellationToken);
                 break;
+            case Subscription subscription when stripeEvent.Type == EventTypes.CustomerSubscriptionTrialWillEnd:
+                await TrialWillEndAsync(subscription, cancellationToken);
+                break;
             case Invoice invoice when stripeEvent.Type == EventTypes.InvoicePaid:
                 await InvoicePaidAsync(invoice, now, cancellationToken);
                 break;
@@ -148,6 +151,12 @@ internal sealed class StripeWebhookHandler(
             subscription.TrialEnd,
             priceVersion,
             now);
+    }
+
+    private async Task TrialWillEndAsync(Subscription subscription, CancellationToken cancellationToken)
+    {
+        var purchase = await FindAsync(subscription.Metadata, p => p.SubscriptionId == subscription.Id, cancellationToken);
+        purchase?.TrialEnding(subscription.TrialEnd);
     }
 
     private async Task InvoicePaidAsync(Invoice invoice, DateTime now, CancellationToken cancellationToken)
