@@ -10,6 +10,8 @@ using GymHub.Modules.Billing.Data;
 using GymHub.Modules.Billing.Domain;
 using GymHub.Modules.Billing.Payments;
 using GymHub.Modules.Discussions.Data;
+using GymHub.Modules.Notifications.Data;
+using GymHub.Modules.Notifications.Delivery;
 using GymHub.Modules.Programs.Contracts;
 using GymHub.Modules.Programs.Data;
 using GymHub.Modules.Subscriptions.Data;
@@ -42,6 +44,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     internal FakeStripeGateway Stripe { get; } = new();
 
+    internal FakeEmailSender Email { get; } = new();
+
     /// <summary>Signing secret the API accepts for Stripe webhooks in tests.</summary>
     public const string WebhookSecret = "whsec_test_secret";
 
@@ -55,6 +59,16 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await scope.ServiceProvider.GetRequiredService<TrainersDbContext>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<DiscussionsDbContext>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<BillingDbContext>().Database.MigrateAsync();
+        await scope.ServiceProvider.GetRequiredService<NotificationsDbContext>().Database.MigrateAsync();
+    }
+
+    /// <summary>Delivers one event straight to one handler, as the outbox dispatcher would.</summary>
+    public async Task HandleAsync<THandler, TEvent>(TEvent @event)
+        where THandler : EventBus.Abstractions.IIntegrationEventHandler<TEvent>
+        where TEvent : EventBus.Events.IntegrationEvent
+    {
+        using var scope = Services.CreateScope();
+        await ActivatorUtilities.CreateInstance<THandler>(scope.ServiceProvider).Handle(@event);
     }
 
     /// <summary>Gives a trainer a Stripe account that can take charges, as finished onboarding would.</summary>
@@ -96,6 +110,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             services.AddSingleton<IObjectStorage, FakeObjectStorage>();
             services.AddSingleton<IIdentityAdmin>(IdentityAdmin);
             services.AddSingleton<IStripeGateway>(Stripe);
+            services.AddSingleton<IEmailSender>(Email);
 
             services.AddSingleton(PublishedEvents);
             services.AddIntegrationEventHandler<ProgramPublished, RecordingHandlerAdapter<ProgramPublished>>();
@@ -119,6 +134,14 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, string.Join(',', roles));
         }
 
+        return client;
+    }
+
+    /// <summary>A client whose token carries a verified email address.</summary>
+    public HttpClient ClientWithEmail(string userId, string email, params string[] roles)
+    {
+        var client = ClientFor(userId, roles);
+        client.DefaultRequestHeaders.Add(TestAuthHandler.EmailHeader, email);
         return client;
     }
 
@@ -150,6 +173,7 @@ public sealed class TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions>
     public const string SchemeName = "Test";
     public const string UserHeader = "X-Test-User";
     public const string RolesHeader = "X-Test-Roles";
+    public const string EmailHeader = "X-Test-Email";
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -161,6 +185,12 @@ public sealed class TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions>
         var claims = new List<Claim> { new("sub", user.ToString()) };
         var roles = Request.Headers[RolesHeader].ToString().Split(',', StringSplitOptions.RemoveEmptyEntries);
         claims.AddRange(roles.Select(r => new Claim("roles", r)));
+
+        if (Request.Headers.TryGetValue(EmailHeader, out var email))
+        {
+            claims.Add(new Claim("email", email.ToString()));
+            claims.Add(new Claim("email_verified", "true"));
+        }
 
         var identity = new ClaimsIdentity(claims, SchemeName, "sub", "roles");
         return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName)));
@@ -206,6 +236,31 @@ public sealed class RecordingHandlerAdapter<TEvent>(RecordingHandler<TEvent> rec
     public Task Handle(TEvent @event)
     {
         recorder.Received.Enqueue(@event);
+        return Task.CompletedTask;
+    }
+}
+
+/// <summary>
+/// Records emails instead of sending them. Reports itself unconfigured so the background dispatcher stays idle;
+/// tests send with EmailDispatcher.SendDueAsync.
+/// </summary>
+internal sealed class FakeEmailSender : IEmailSender
+{
+    public ConcurrentQueue<OutgoingEmail> Sent { get; } = new();
+
+    /// <summary>Addresses whose sends throw, to exercise retries.</summary>
+    public ConcurrentDictionary<string, bool> Failing { get; } = new();
+
+    public bool IsConfigured => false;
+
+    public Task SendAsync(OutgoingEmail email, CancellationToken cancellationToken)
+    {
+        if (Failing.ContainsKey(email.To))
+        {
+            throw new InvalidOperationException("SMTP is down");
+        }
+
+        Sent.Enqueue(email);
         return Task.CompletedTask;
     }
 }

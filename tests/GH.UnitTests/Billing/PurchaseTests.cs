@@ -60,7 +60,8 @@ public class PurchaseTests
         purchase.CompletePayment("pi_1", Now);
 
         Assert.Equal(PurchaseStatus.Active, purchase.Status);
-        Assert.IsType<PaidAccessGranted>(Assert.Single(purchase.Events));
+        Assert.Single(purchase.Events.OfType<PaidAccessGranted>());
+        Assert.False(Assert.Single(purchase.Events.OfType<ProgramSold>()).IsSubscription);
     }
 
     [Fact]
@@ -74,7 +75,8 @@ public class PurchaseTests
         purchase.CompleteSubscription("sub_1");
 
         Assert.Equal(PurchaseStatus.Trialing, purchase.Status);
-        Assert.IsType<PaidAccessGranted>(Assert.Single(purchase.Events));
+        Assert.Single(purchase.Events.OfType<PaidAccessGranted>());
+        Assert.True(Assert.Single(purchase.Events.OfType<ProgramSold>()).IsSubscription);
     }
 
     [Theory]
@@ -87,7 +89,10 @@ public class PurchaseTests
         purchase.ClearEvents();
 
         purchase.SyncSubscription("sub_1", "past_due", false, Now, null, null, Now);
+        purchase.SyncSubscription("sub_1", "past_due", false, Now, null, null, Now);
         Assert.True(purchase.GivesAccess);
+        Assert.Single(purchase.Events.OfType<SubscriptionPaymentFailed>());
+        purchase.ClearEvents();
 
         purchase.SyncSubscription("sub_1", status, false, Now, null, null, Now);
 
@@ -101,6 +106,8 @@ public class PurchaseTests
         var purchase = Start(Monthly);
         purchase.CompleteSubscription("sub_1");
         purchase.SchedulePriceChange(4, 2499, BillingInterval.Yearly);
+        var scheduled = Assert.Single(purchase.Events.OfType<SubscriptionPriceChangeScheduled>());
+        Assert.Equal((4, 2499L, "Yearly"), (scheduled.PriceVersion, scheduled.AmountMinor, scheduled.Interval));
 
         purchase.SyncSubscription("sub_1", "active", false, Now, null, priceVersion: 3, Now);
         Assert.Equal(1999, purchase.AmountMinor);

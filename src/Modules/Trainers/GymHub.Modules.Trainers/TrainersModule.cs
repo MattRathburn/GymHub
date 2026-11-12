@@ -36,6 +36,7 @@ public sealed class TrainersModule : IModule
             http.BaseAddress = sp.GetRequiredService<IOptions<KeycloakAdminOptions>>().Value.BaseAddress);
         services.AddIntegrationEventHandler<TrainerApproved, GrantTrainerRoleHandler>();
         services.AddScoped<IProfileDirectory, ProfileDirectory>();
+        services.AddScoped<IFollowers, Followers>();
 
         services.AddScoped<SubmitApplicationHandler>();
         services.AddScoped<ReviewApplicationsHandler>();

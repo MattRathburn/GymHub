@@ -36,3 +36,9 @@ internal sealed class ProfileDirectory(TrainersDbContext db, IObjectStorage stor
         return authors;
     }
 }
+
+internal sealed class Followers(TrainersDbContext db) : IFollowers
+{
+    public async Task<IReadOnlyList<string>> GetFollowerIdsAsync(string trainerId, CancellationToken cancellationToken) =>
+        await db.Follows.Where(f => f.TrainerId == trainerId).Select(f => f.UserId).ToListAsync(cancellationToken);
+}

@@ -23,6 +23,7 @@
     <div class="ml-auto flex items-center gap-3">
       @if (auth.user(); as user) {
         @if (user.isAuthenticated) {
+          <app-notification-bell />
           <a routerLink="/me/profile" routerLinkActive="text-indigo-700" class="text-sm text-slate-600 hover:text-slate-900">{{ user.name }}</a>
           <button class="btn-secondary" (click)="auth.logout()">Sign out</button>
         } @else {

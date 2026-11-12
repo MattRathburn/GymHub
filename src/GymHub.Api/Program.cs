@@ -6,12 +6,13 @@ using GymHub.BuildingBlocks.Outbox;
 using GymHub.BuildingBlocks.Storage;
 using GymHub.Modules.Billing;
 using GymHub.Modules.Discussions;
+using GymHub.Modules.Notifications;
 using GymHub.Modules.Programs;
 using GymHub.Modules.Subscriptions;
 using GymHub.Modules.Trainers;
 using GymHub.ServiceDefaults;
 
-IModule[] modules = [new ProgramsModule(), new SubscriptionsModule(), new TrainersModule(), new DiscussionsModule(), new BillingModule()];
+IModule[] modules = [new ProgramsModule(), new SubscriptionsModule(), new TrainersModule(), new DiscussionsModule(), new BillingModule(), new NotificationsModule()];
 
 var builder = WebApplication.CreateBuilder(args);
 

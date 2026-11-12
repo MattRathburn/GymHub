@@ -17,6 +17,7 @@
     <ProjectReference Include="..\BuildingBlocks\GymHub.BuildingBlocks\GymHub.BuildingBlocks.csproj" />
     <ProjectReference Include="..\Modules\Discussions\GymHub.Modules.Discussions\GymHub.Modules.Discussions.csproj" />
     <ProjectReference Include="..\Modules\Billing\GymHub.Modules.Billing\GymHub.Modules.Billing.csproj" />
+    <ProjectReference Include="..\Modules\Notifications\GymHub.Modules.Notifications\GymHub.Modules.Notifications.csproj" />
     <ProjectReference Include="..\Modules\Programs\GymHub.Modules.Programs\GymHub.Modules.Programs.csproj" />
     <ProjectReference Include="..\Modules\Subscriptions\GymHub.Modules.Subscriptions\GymHub.Modules.Subscriptions.csproj" />
     <ProjectReference Include="..\Modules\Trainers\GymHub.Modules.Trainers\GymHub.Modules.Trainers.csproj" />

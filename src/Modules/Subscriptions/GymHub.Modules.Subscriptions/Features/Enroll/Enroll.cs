@@ -52,6 +52,8 @@ internal sealed class EnrollHandler(SubscriptionsDbContext db, IProgramCatalog c
             existing.Reactivate(now);
         }
 
+        db.AddIntegrationEvent(new EnrollmentStarted(user.Id, programId));
+
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
