@@ -170,14 +170,21 @@
                 @for (w of d.workouts; track w.id) {
                   <div class="flex items-center justify-between text-sm">
                     <span>Day {{ d.number }} · {{ w.title }}</span>
-                    <button type="button" class="text-rose-600 hover:underline" [disabled]="busy() || isArchived()" (click)="removeWorkout(week, d.number, w.id)">Remove</button>
+                    <span class="flex gap-3">
+                      <button type="button" class="text-indigo-600 hover:underline" [disabled]="busy() || isArchived()" (click)="editWorkout(week, d.number, w)">Edit</button>
+                      <button type="button" class="text-rose-600 hover:underline" [disabled]="busy() || isArchived()" (click)="removeWorkout(week, d.number, w.id)">Remove</button>
+                    </span>
                   </div>
                 }
               }
             </form>
 
-            <form class="space-y-2" [formGroup]="workout" (ngSubmit)="addWorkout(week)">
-              <h3 class="text-sm font-semibold">Add a workout to day {{ day.controls.number.value }}</h3>
+            <form class="space-y-2" [formGroup]="workout" (ngSubmit)="saveWorkout(week)">
+              @if (editingWorkout(); as editing) {
+                <h3 class="text-sm font-semibold">Edit {{ editing.workout.title }} (day {{ editing.dayNumber }})</h3>
+              } @else {
+                <h3 class="text-sm font-semibold">Add a workout to day {{ day.controls.number.value }}</h3>
+              }
               <input class="input" formControlName="title" placeholder="Workout title" aria-label="Workout title" />
               <input class="input" formControlName="notes" placeholder="Notes (optional)" aria-label="Workout notes" />
               <div formArrayName="exercises" class="space-y-2">
@@ -194,7 +201,12 @@
               <p class="text-xs text-slate-500">Columns: exercise, sets, reps, weight (kg).</p>
               <div class="flex gap-2">
                 <button type="button" class="btn-secondary" (click)="addExerciseRow()">Add exercise</button>
-                <button class="btn-primary" type="submit" [disabled]="workout.invalid || busy() || isArchived()">Add workout</button>
+                <button class="btn-primary" type="submit" [disabled]="workout.invalid || busy() || isArchived()">
+                  {{ editingWorkout() ? 'Save workout' : 'Add workout' }}
+                </button>
+                @if (editingWorkout()) {
+                  <button type="button" class="btn-secondary" (click)="cancelEdit()">Cancel</button>
+                }
               </div>
             </form>
           </div>

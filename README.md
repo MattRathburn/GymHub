@@ -18,7 +18,7 @@ Welcome to the **Gym Hub**! Trainers build workout programs and grow a following
 - Payments through Stripe Connect: trainers onboard a Stripe Express account, members pay with Stripe Checkout, GymHub keeps a platform fee, and refunds end access
 - Trainers apply and an admin approves them; public trainer profiles you can follow
 - Subscriber-only discussion board per program: questions with answers, nested replies, live updates, and moderation with a report queue
-- Workout logging and progress tracking *(planned)*
+- Training log: log program or freestyle workouts, with history, per-exercise progress charts, personal records and program progress
 - Notifications: an in-app inbox with a live unread count, emails, and per-type settings
 - Reviews *(planned)*
 
@@ -85,6 +85,8 @@ Sign in as `trainer`, open **Trainer studio**, create a program, then add weeks,
 To sell a program, the trainer opens **Payouts** and finishes Stripe's onboarding, then gives the program a one-time or subscription price before publishing. Members buy with Stripe's test card `4242 4242 4242 4242`, manage subscriptions under **My programs → Manage billing**, and trainers refund sales from **Payouts**. Admins see every purchase under **Purchases**.
 
 The bell in the nav shows notifications live: new weeks, replies, new threads for the trainer, programs from followed trainers, and billing changes. Choose in-app and email per type under **Notifications → Settings**. Locally, emails land in Mailpit, linked from the Aspire dashboard.
+
+Members log workouts under **Training log**, or with **Log workout** next to a released workout on a program page (pre-filled with the planned sets). Each exercise gets a progress chart and a list of personal records, and the program page shows how many released workouts you've logged.
 
 ## Contributing
 We welcome contributions! Please read our Contributing Guidelines for more details.

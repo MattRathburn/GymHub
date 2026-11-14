@@ -10,9 +10,10 @@ using GymHub.Modules.Notifications;
 using GymHub.Modules.Programs;
 using GymHub.Modules.Subscriptions;
 using GymHub.Modules.Trainers;
+using GymHub.Modules.TrainingLog;
 using GymHub.ServiceDefaults;
 
-IModule[] modules = [new ProgramsModule(), new SubscriptionsModule(), new TrainersModule(), new DiscussionsModule(), new BillingModule(), new NotificationsModule()];
+IModule[] modules = [new ProgramsModule(), new SubscriptionsModule(), new TrainersModule(), new DiscussionsModule(), new BillingModule(), new NotificationsModule(), new TrainingLogModule()];
 
 var builder = WebApplication.CreateBuilder(args);
 

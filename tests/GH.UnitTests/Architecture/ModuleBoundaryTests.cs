@@ -9,6 +9,7 @@ using GymHub.Modules.Programs.Contracts;
 using GymHub.Modules.Subscriptions;
 using GymHub.Modules.Subscriptions.Contracts;
 using GymHub.Modules.Trainers;
+using GymHub.Modules.TrainingLog;
 using GymHub.Modules.Trainers.Contracts;
 using NetArchTest.Rules;
 
@@ -26,7 +27,8 @@ public class ModuleBoundaryTests
         typeof(TrainersModule).Assembly,
         typeof(DiscussionsModule).Assembly,
         typeof(BillingModule).Assembly,
-        typeof(NotificationsModule).Assembly
+        typeof(NotificationsModule).Assembly,
+        typeof(TrainingLogModule).Assembly
     ];
 
     private static readonly Assembly[] ContractAssemblies =

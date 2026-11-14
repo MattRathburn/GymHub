@@ -45,6 +45,36 @@ public interface IProgramCatalog
     Task<IReadOnlyDictionary<Guid, ProgramSummary>> GetSummariesAsync(IReadOnlyCollection<Guid> programIds, CancellationToken cancellationToken);
 }
 
+/// <summary>A prescribed set, as the trainer wrote it.</summary>
+public sealed record PlannedSet(int? Reps, decimal? WeightKg, int? DurationSec, int? DistanceM, int? RestSec, decimal? Rpe);
+
+public sealed record ReleasedExercise(Guid ExerciseId, string Name, IReadOnlyList<PlannedSet> PlannedSets);
+
+public sealed record ReleasedWorkout(
+    Guid ProgramId,
+    string ProgramTitle,
+    Guid WeekId,
+    int WeekNumber,
+    int DayNumber,
+    Guid WorkoutId,
+    string Title,
+    IReadOnlyList<ReleasedExercise> Exercises);
+
+public sealed record ScheduledWorkout(Guid WorkoutId, int DayNumber, int Order, string Title);
+
+public sealed record ReleasedWeek(Guid WeekId, int WeekNumber, string Title, DateOnly ReleasesOn, IReadOnlyList<ScheduledWorkout> Workouts);
+
+/// <summary>
+/// Released workouts of a published or archived program, for other modules (the training log). Callers check access
+/// themselves; drafts and unreleased weeks are never returned.
+/// </summary>
+public interface IProgramWorkouts
+{
+    Task<ReleasedWorkout?> GetReleasedWorkoutAsync(Guid programId, Guid workoutId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<ReleasedWeek>?> GetReleasedScheduleAsync(Guid programId, CancellationToken cancellationToken);
+}
+
 public sealed record ProgramPublished(Guid ProgramId, string TrainerId, string Title, ProgramPrice Price, int PriceVersion) : IntegrationEvent;
 
 public sealed record ProgramPricingChanged(Guid ProgramId, ProgramPrice Price, int PriceVersion) : IntegrationEvent;

@@ -6,6 +6,7 @@ using GymHub.Modules.Notifications.Data;
 using GymHub.Modules.Programs.Data;
 using GymHub.Modules.Subscriptions.Data;
 using GymHub.Modules.Trainers.Data;
+using GymHub.Modules.TrainingLog.Data;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -18,6 +19,7 @@ builder.AddModuleDbContext<TrainersDbContext>(TrainersDbContext.SchemaName);
 builder.AddModuleDbContext<DiscussionsDbContext>(DiscussionsDbContext.SchemaName);
 builder.AddModuleDbContext<BillingDbContext>(BillingDbContext.SchemaName);
 builder.AddModuleDbContext<NotificationsDbContext>(NotificationsDbContext.SchemaName);
+builder.AddModuleDbContext<TrainingLogDbContext>(TrainingLogDbContext.SchemaName);
 
 builder.Services.AddHostedService<MigrationWorker>();
 

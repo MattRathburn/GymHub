@@ -22,6 +22,7 @@
     <ProjectReference Include="..\Modules\Discussions\GymHub.Modules.Discussions\GymHub.Modules.Discussions.csproj" />
     <ProjectReference Include="..\Modules\Billing\GymHub.Modules.Billing\GymHub.Modules.Billing.csproj" />
     <ProjectReference Include="..\Modules\Notifications\GymHub.Modules.Notifications\GymHub.Modules.Notifications.csproj" />
+    <ProjectReference Include="..\Modules\TrainingLog\GymHub.Modules.TrainingLog\GymHub.Modules.TrainingLog.csproj" />
   </ItemGroup>
 
 </Project>

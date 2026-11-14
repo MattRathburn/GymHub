@@ -51,6 +51,43 @@ export const appRoutes: Route[] = [
       import('./features/subscriptions/my-subscriptions.component').then((m) => m.MySubscriptionsComponent),
   },
   {
+    path: 'me/training',
+    title: 'GymHub · Training log',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/training/history.component').then((m) => m.HistoryComponent),
+  },
+  {
+    path: 'me/training/log',
+    title: 'GymHub · Log a workout',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/training/log-session.component').then((m) => m.LogSessionComponent),
+  },
+  {
+    path: 'me/training/sessions/:id',
+    title: 'GymHub · Workout',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/training/session-detail.component').then((m) => m.SessionDetailComponent),
+  },
+  {
+    path: 'me/training/sessions/:id/edit',
+    title: 'GymHub · Edit workout',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/training/log-session.component').then((m) => m.LogSessionComponent),
+  },
+  {
+    path: 'me/training/exercises',
+    title: 'GymHub · Exercises',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/training/exercises.component').then((m) => m.ExercisesComponent),
+  },
+  {
+    path: 'me/training/exercises/:key',
+    title: 'GymHub · Exercise progress',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/training/exercise-progress.component').then((m) => m.ExerciseProgressComponent),
+  },
+  {
     path: 'studio',
     title: 'GymHub · Trainer studio',
     canActivate: [trainerGuard],
