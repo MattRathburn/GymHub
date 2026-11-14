@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { Observable, firstValueFrom, switchMap } from 'rxjs';
 import { LoadState, toLoadState } from '../../../core/http/load-state';
 import { problemMessage } from '../../../core/http/problem';
-import { BillingInterval, PricingModel, ProgramContent, ProgramKind, Week, formatPrice } from '../program.model';
+import { BillingInterval, Exercise, PricingModel, ProgramContent, ProgramKind, Week, Workout, formatPrice } from '../program.model';
 import { ProgramsService } from '../programs.service';
 import { WorkoutViewComponent } from '../workout-view.component';
 
@@ -106,13 +106,37 @@ export class ProgramEditorComponent {
     });
   }
 
-  protected exerciseRow() {
+  /** The workout loaded into the form for editing, or null when adding one. */
+  protected readonly editingWorkout = signal<{ weekId: string; dayNumber: number; workout: Workout } | null>(null);
+
+  protected exerciseRow(exercise?: Exercise) {
+    const first = exercise?.sets[0];
     return this.fb.group({
-      name: ['', Validators.required],
-      sets: [3, [Validators.min(1), Validators.max(30)]],
-      reps: [10 as number | null],
-      weightKg: [null as number | null],
+      id: [exercise?.id ?? null],
+      name: [exercise?.name ?? '', Validators.required],
+      sets: [exercise ? exercise.sets.length || 1 : 3, [Validators.min(1), Validators.max(30)]],
+      reps: [exercise ? (first?.reps ?? null) : (10 as number | null)],
+      weightKg: [first?.weightKg ?? null],
     });
+  }
+
+  /**
+   * Loads a workout into the form. Saving it keeps the workout's and exercises' ids, so members' logs keep pointing at
+   * them. An exercise whose row isn't changed keeps its exact sets, even ones the simple row can't show.
+   */
+  protected editWorkout(week: Week, dayNumber: number, workout: Workout): void {
+    this.editingWorkout.set({ weekId: week.id, dayNumber, workout });
+    this.day.patchValue({ number: dayNumber });
+    this.workout.reset({ title: workout.title, notes: workout.notes ?? '' });
+    this.workout.controls.exercises.clear();
+    for (const exercise of workout.exercises) {
+      this.workout.controls.exercises.push(this.exerciseRow(exercise));
+    }
+  }
+
+  protected cancelEdit(): void {
+    this.editingWorkout.set(null);
+    this.resetWorkoutForm();
   }
 
   protected addExerciseRow(): void {
@@ -182,31 +206,47 @@ export class ProgramEditorComponent {
     );
   }
 
-  protected async addWorkout(week: Week): Promise<void> {
+  protected async saveWorkout(week: Week): Promise<void> {
     const v = this.workout.getRawValue();
-    const dayNumber = this.day.getRawValue().number;
+    const editing = this.editingWorkout();
+    const dayNumber = editing?.dayNumber ?? this.day.getRawValue().number;
+    const original = new Map(editing?.workout.exercises.map((e) => [e.id, e]) ?? []);
 
     await this.run(
-      this.programsService.saveWorkout(this.id(), week.id, dayNumber, null, {
+      this.programsService.saveWorkout(this.id(), editing?.weekId ?? week.id, dayNumber, editing?.workout.id ?? null, {
         title: v.title,
         notes: v.notes || null,
-        exercises: v.exercises.map((e) => ({
-          id: null,
-          name: e.name,
-          notes: null,
-          sets: Array.from({ length: e.sets }, () => ({
-            reps: e.reps,
-            weightKg: e.weightKg,
-            durationSec: null,
-            distanceM: null,
-            restSec: null,
-            rpe: null,
-          })),
-        })),
+        exercises: v.exercises.map((e) => {
+          const before = e.id ? original.get(e.id) : undefined;
+          const unchanged = before && rowMatches(this.exerciseRow(before).getRawValue(), e);
+
+          return {
+            id: before ? before.id : null,
+            name: e.name,
+            notes: before?.notes ?? null,
+            sets: unchanged
+              ? before.sets
+              : Array.from({ length: e.sets }, () => ({
+                  reps: e.reps,
+                  weightKg: e.weightKg,
+                  durationSec: null,
+                  distanceM: null,
+                  restSec: null,
+                  rpe: null,
+                })),
+          };
+        }),
       }),
-      'Workout added.',
+      editing ? 'Workout saved.' : 'Workout added.',
     );
 
+    if (!this.error()) {
+      this.editingWorkout.set(null);
+      this.resetWorkoutForm();
+    }
+  }
+
+  private resetWorkoutForm(): void {
     this.workout.reset();
     this.workout.controls.exercises.clear();
     this.workout.controls.exercises.push(this.exerciseRow());
@@ -259,4 +299,15 @@ export class ProgramEditorComponent {
       this.busy.set(false);
     }
   }
+}
+
+interface ExerciseRowValue {
+  name: string;
+  sets: number;
+  reps: number | null;
+  weightKg: number | null;
+}
+
+function rowMatches(a: ExerciseRowValue, b: ExerciseRowValue): boolean {
+  return a.name === b.name && a.sets === b.sets && a.reps === b.reps && a.weightKg === b.weightKg;
 }

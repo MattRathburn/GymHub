@@ -35,6 +35,7 @@ public sealed class ProgramsModule : IModule
         var services = builder.Services;
         services.AddValidatorsFromAssemblyContaining<ProgramsModule>(includeInternalTypes: true);
         services.AddScoped<IProgramCatalog, ProgramCatalog>();
+        services.AddScoped<IProgramWorkouts, ProgramWorkouts>();
         services.AddScoped<ProgramContentMapper>();
         services.AddSingleton<WeekReleaseJob>();
         services.AddHostedService(sp => sp.GetRequiredService<WeekReleaseJob>());

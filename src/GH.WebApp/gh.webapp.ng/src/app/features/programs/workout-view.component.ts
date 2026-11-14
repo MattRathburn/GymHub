@@ -1,9 +1,14 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { ExerciseSet, Week } from './program.model';
 
-/** Read-only rendering of weeks → days → workouts → exercises, shared by the subscriber view and the editor. */
+/**
+ * Read-only rendering of weeks → days → workouts → exercises, shared by the subscriber view and the editor. With
+ * logProgramId set, each workout gets a link to log it, and workouts in doneWorkoutIds are marked done.
+ */
 @Component({
   selector: 'app-workout-view',
+  imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">
@@ -20,7 +25,23 @@ import { ExerciseSet, Week } from './program.model';
           }
           @for (workout of day.workouts; track workout.id) {
             <div class="mt-3">
-              <p class="font-medium">{{ workout.title }}</p>
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <p class="font-medium">
+                  {{ workout.title }}
+                  @if (doneWorkoutIds().has(workout.id)) {
+                    <span class="ml-2 rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-700">✓ Done</span>
+                  }
+                </p>
+                @if (logProgramId(); as programId) {
+                  <a
+                    class="text-sm text-indigo-600 hover:underline"
+                    routerLink="/me/training/log"
+                    [queryParams]="{ programId, workoutId: workout.id }"
+                  >
+                    Log workout
+                  </a>
+                }
+              </div>
               @if (workout.notes) {
                 <p class="text-sm text-slate-600">{{ workout.notes }}</p>
               }
@@ -53,6 +74,8 @@ import { ExerciseSet, Week } from './program.model';
 })
 export class WorkoutViewComponent {
   readonly week = input.required<Week>();
+  readonly logProgramId = input<string | null>(null);
+  readonly doneWorkoutIds = input<ReadonlySet<string>>(new Set<string>());
 
   protected describeSets(sets: ExerciseSet[]): string {
     if (sets.length === 0) {

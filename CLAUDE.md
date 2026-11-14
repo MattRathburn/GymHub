@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 GymHub is a workout-program platform: trainers (approved by an admin) publish programs, users subscribe or buy them, and each program gets a subscriber-only discussion board. It is a **modular monolith with vertical slices** on .NET 10 + Aspire, with a YARP **BFF** (`Gateway`), **Keycloak** auth, PostgreSQL, S3-compatible media storage, and an Angular 21 frontend.
 
-Built so far: the foundation and the **Programs**, **Subscriptions**, **Trainers** (applications, profiles, follows, member profiles), **Discussions**, **Billing** (Stripe Connect) and **Notifications** modules. Planned modules, each with its own plan: Training Log, Reviews. Plans live in `docs/plans/`.
+Built so far: the foundation and the **Programs**, **Subscriptions**, **Trainers** (applications, profiles, follows, member profiles), **Discussions**, **Billing** (Stripe Connect), **Notifications** and **Training Log** modules. Planned module, with its own plan to come: Reviews. Plans live in `docs/plans/`.
 
 The root `README.md` is partly stale; trust the code, `GymHub.AppHost/Program.cs` and `.github/instructions/` over it.
 
@@ -94,6 +94,13 @@ Notification emails go to a **Mailpit** container (web UI linked from the Aspire
 - A notification row is kept even when in-app is off (`ShowInApp = false`) so its dedupe key also covers the email.
 - Emails are queued (`EmailMessage`) in the same `SaveChanges` and sent by `EmailDispatcher` (MailKit SMTP, backoff, 5 attempts). Addresses come from the `email` claim, stored when the bell calls `/unread-count`; unverified ones only when `Notifications:EmailUnverifiedAddresses` (on in the AppHost).
 - `NotificationsHub` at `/api/v1/notifications/hub` sends `notificationsChanged(unreadCount)` to `Clients.User(sub)`; clients refetch over REST. `NotificationCleanupJob` deletes old rows daily.
+
+**Training Log module** (route prefix `training`, schema `training`):
+- A `WorkoutSession` is freestyle or logged against a released program workout. Program reads go through `IProgramWorkouts` (Programs.Contracts); access is the same rule as program content (trainer, admin or `IEntitlements`).
+- Sessions snapshot the program title, week and exercise names, and keep the program ids only as references, because trainers can remove workouts. Program exercises take their name from the program; on edit they keep the logged name.
+- `LoggedExercise` rows carry `ExerciseKey` (normalized name, e.g. `back-squat`) and summary columns (`TopWeightKg`, `BestE1RmKg` by Epley for 1 to 12 reps, `VolumeKg`, `TotalReps`) so progress is plain SQL. The Angular `training.model.ts` repeats the key and e1RM rules.
+- Personal records are derived (`PersonalRecords.History`), never stored: a session sets a record when it beats every earlier session for that key.
+- Logs are private to the member. The program editor's "Edit workout" keeps workout and exercise ids so logs and adherence stay linked.
 
 **Other projects:** `GymHub.MigrationService` migrates every module and then exits; the API `WaitForCompletion`s it. `EventBusRabbitMQ` is kept but unused.
 

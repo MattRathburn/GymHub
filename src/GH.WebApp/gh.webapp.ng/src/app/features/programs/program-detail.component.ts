@@ -8,6 +8,8 @@ import { problemMessage } from '../../core/http/problem';
 import { Purchase, Redirect, givesAccess, purchaseStatusLine } from '../billing/billing.model';
 import { BillingService, goToStripe } from '../billing/billing.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { Adherence } from '../training/training.model';
+import { TrainingService } from '../training/training.service';
 import { ProgramContent, ProgramOverview, formatPrice, formatTrial } from './program.model';
 import { ProgramsService } from './programs.service';
 import { WorkoutViewComponent } from './workout-view.component';
@@ -22,6 +24,7 @@ export class ProgramDetailComponent {
   private readonly programsService = inject(ProgramsService);
   private readonly subscriptions = inject(SubscriptionsService);
   private readonly billing = inject(BillingService);
+  private readonly training = inject(TrainingService);
   protected readonly auth = inject(AuthService);
 
   /** Route parameter, bound by withComponentInputBinding. */
@@ -82,6 +85,21 @@ export class ProgramDetailComponent {
   protected readonly needsSignIn = computed(() => this.contentErrorCode() === 401);
   protected readonly canSubscribe = computed(() => this.contentErrorCode() === 403);
   protected readonly upcomingWeeks = computed(() => this.program()?.weeks.filter((w) => !w.isReleased) ?? []);
+
+  /** How much of the released program the member has logged; null without access. */
+  protected readonly adherence = toSignal(
+    toObservable(computed(() => ({ id: this.id(), access: this.hasAccess() }))).pipe(
+      switchMap(({ id, access }) =>
+        access ? this.training.adherence(id).pipe(catchError(() => of(null))) : of(null as Adherence | null),
+      ),
+    ),
+    { initialValue: null },
+  );
+
+  protected readonly doneWorkoutIds = computed(
+    () => new Set(this.adherence()?.weeks.flatMap((w) => w.workouts.filter((x) => x.lastSessionId).map((x) => x.workoutId)) ?? []),
+  );
+
   protected readonly isOwner = computed(() => {
     const state = this.content();
     return state.status === 'ok' && state.value.trainerId === this.auth.user()?.subject;

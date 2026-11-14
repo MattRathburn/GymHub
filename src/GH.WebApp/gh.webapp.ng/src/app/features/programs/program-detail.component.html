@@ -85,11 +85,29 @@
         <span class="text-indigo-600">Open →</span>
       </a>
 
+      @if (adherence(); as a) {
+        <a [routerLink]="['/me/training']" [queryParams]="{ programId: p.id }" class="card mt-4 block hover:border-indigo-300">
+          <span class="flex items-center justify-between">
+            <span class="font-semibold">Your progress</span>
+            <span class="text-indigo-600">Your workouts →</span>
+          </span>
+          <span class="mt-1 block text-sm text-slate-600">
+            {{ a.completed }} of {{ a.planned }} released workouts logged
+            @if (a.noLongerInProgram.length > 0) {
+              · {{ a.noLongerInProgram.length }} from workouts no longer in the program
+            }
+          </span>
+          <span class="mt-2 block h-2 overflow-hidden rounded-full bg-slate-100">
+            <span class="block h-full rounded-full bg-emerald-500" [style.width.%]="a.planned ? (a.completed / a.planned) * 100 : 0"></span>
+          </span>
+        </a>
+      }
+
       <h2 class="mt-10 text-xl font-semibold">Your training</h2>
       @for (week of releasedWeeks(); track week.id) {
         <div class="card mt-4">
           <h3 class="mb-3 font-semibold">Week {{ week.number }}: {{ week.title }}</h3>
-          <app-workout-view [week]="week" />
+          <app-workout-view [week]="week" [logProgramId]="p.id" [doneWorkoutIds]="doneWorkoutIds()" />
         </div>
       } @empty {
         <p class="mt-2 text-slate-500">The first week hasn't been released yet.</p>

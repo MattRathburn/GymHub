@@ -43,6 +43,9 @@
     <Project Path="src/Modules/Trainers/GymHub.Modules.Trainers/GymHub.Modules.Trainers.csproj" />
     <Project Path="src/Modules/Trainers/GymHub.Modules.Trainers.Contracts/GymHub.Modules.Trainers.Contracts.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/TrainingLog/">
+    <Project Path="src/Modules/TrainingLog/GymHub.Modules.TrainingLog/GymHub.Modules.TrainingLog.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/GH.FunctionalTests/GH.FunctionalTests.csproj" />
     <Project Path="tests/GH.UnitTests/GH.UnitTests.csproj" />

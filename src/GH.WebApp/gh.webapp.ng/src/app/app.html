@@ -5,6 +5,7 @@
     <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="text-indigo-700" class="text-sm text-slate-600 hover:text-slate-900">Programs</a>
     @if (auth.isAuthenticated()) {
       <a routerLink="/me/programs" routerLinkActive="text-indigo-700" class="text-sm text-slate-600 hover:text-slate-900">My programs</a>
+      <a routerLink="/me/training" routerLinkActive="text-indigo-700" class="text-sm text-slate-600 hover:text-slate-900">Training log</a>
       <a routerLink="/me/following" routerLinkActive="text-indigo-700" class="text-sm text-slate-600 hover:text-slate-900">Following</a>
     }
     @if (auth.isTrainer()) {
