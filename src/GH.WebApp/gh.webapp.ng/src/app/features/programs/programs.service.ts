@@ -38,6 +38,12 @@ export class ProgramsService {
     if (query.kind) {
       params = params.set('kind', query.kind);
     }
+    if (query.pricing) {
+      params = params.set('pricing', query.pricing);
+    }
+    if (query.sort && query.sort !== 'Newest') {
+      params = params.set('sort', query.sort);
+    }
 
     return this.http.get<PagedResult<ProgramCard>>(`${this.baseUrl}/`, { params });
   }

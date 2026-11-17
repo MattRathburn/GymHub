@@ -72,7 +72,9 @@ Notification emails go to a **Mailpit** container (web UI linked from the Aspire
 - Invariants live in the domain and return `Error`s.
 - `WeekReleaseJob` raises `ProgramWeekReleased` once per released week.
 
-**Trainers module:** trainer applications (admin approval grants the Keycloak `trainer` role through the outbox), trainer profiles, follows, and a basic `MemberProfile` (display name + avatar) for every user. Other modules read names through `IProfileDirectory`; a trainer profile name wins over a member profile name.
+- Catalog (`BrowsePrograms`): search matches title, summary or trainer name (trainer ids from `ITrainerDirectory`, Trainers.Contracts); filters `kind`, `pricing` (and the older `free`); `sort=Newest|TopRated|PriceLow|PriceHigh`. `TrainingProgram` mirrors the current price (`IsFree`, `PriceModel`, `PriceAmountMinor`, `PriceCurrency`, `PriceInterval`) and the Reviews rating so all of this is SQL. Price sorts group by currency and compare yearly plans per month. Search text goes through `LikePattern` (BuildingBlocks) so `%` and `_` match literally. Top rated is a Bayesian average pulled toward 3 stars with weight 5; unrated programs come last.
+
+**Trainers module:** trainer applications (admin approval grants the Keycloak `trainer` role through the outbox), trainer profiles, follows, and a basic `MemberProfile` (display name + avatar) for every user. Other modules read names through `IProfileDirectory`; a trainer profile name wins over a member profile name. `GET /api/v1/trainers` is the public directory: trainers with a published program (`IProgramCatalog.GetPublishingTrainersAsync`), most followed first.
 
 **Discussions module:**
 - One board per program, for its subscribers (`IEntitlements`), its trainer and admins (`BoardAccess`, checked on every request). Draft programs have no board; archived ones are read-only.

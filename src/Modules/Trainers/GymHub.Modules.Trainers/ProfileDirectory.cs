@@ -1,3 +1,4 @@
+using GymHub.BuildingBlocks.Persistence;
 using GymHub.BuildingBlocks.Storage;
 using GymHub.Modules.Trainers.Contracts;
 using GymHub.Modules.Trainers.Data;
@@ -6,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GymHub.Modules.Trainers;
 
-internal sealed class ProfileDirectory(TrainersDbContext db, IObjectStorage storage) : IProfileDirectory
+internal sealed class ProfileDirectory(TrainersDbContext db, IObjectStorage storage) : IProfileDirectory, ITrainerDirectory
 {
     public async Task<IReadOnlyDictionary<string, AuthorInfo>> GetAuthorsAsync(IReadOnlyCollection<string> userIds, CancellationToken cancellationToken)
     {
@@ -34,6 +35,16 @@ internal sealed class ProfileDirectory(TrainersDbContext db, IObjectStorage stor
         }
 
         return authors;
+    }
+
+    public async Task<IReadOnlyList<string>> FindTrainerIdsAsync(string nameContains, CancellationToken cancellationToken)
+    {
+        var pattern = LikePattern.Contains(nameContains);
+
+        return await db.Profiles.AsNoTracking()
+            .Where(p => EF.Functions.ILike(p.DisplayName, pattern, LikePattern.EscapeCharacter))
+            .Select(p => p.UserId)
+            .ToListAsync(cancellationToken);
     }
 }
 

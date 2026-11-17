@@ -14,7 +14,8 @@ Welcome to the **Gym Hub**! Trainers build workout programs and grow a following
 - Fixed-date or ongoing programs, with each week released on a calendar date
 - Free, one-time or recurring pricing set by the trainer, with optional free trials
 - Payments through Stripe Connect: trainers onboard a Stripe Express account, members pay with Stripe Checkout, GymHub keeps a platform fee, and refunds end access
-- Trainers apply and an admin approves them; public trainer profiles you can follow
+- Trainers apply and an admin approves them; public trainer profiles you can follow, and a trainer directory
+- Discovery: a landing page, and a catalog with search (programs and trainers), pricing and schedule filters, sorting by newest, top rated or price, and paging
 - Subscriber-only discussion board per program: questions with answers, nested replies, live updates, and moderation with a report queue
 - Training log: log program or freestyle workouts, with history, per-exercise progress charts, personal records and program progress
 - Notifications: an in-app inbox with a live unread count, emails, and per-type settings
@@ -81,7 +82,7 @@ The functional tests need Docker. For the Angular tests, run `npm test` in `src/
 CI (`.github/workflows/ci.yml`) runs the .NET build and tests, the Angular tests and build, and a gitleaks secret scan. For now it only runs manually: **Actions → CI → Run workflow**.
 
 ## Usage
-Sign in as `trainer`, open **Trainer studio**, create a program, then add weeks, days and workouts and publish it. Sign in as `member` to find the program, subscribe, and see the weeks released so far. Subscribers, the trainer and admins open the program's **Discussion board** to ask questions and reply; `admin` reviews reported posts under **Reports**.
+Sign in as `trainer`, open **Trainer studio**, create a program, then add weeks, days and workouts and publish it. Sign in as `member` to find the program (the front page links to the catalog at **Programs** and the directory at **Trainers**), subscribe, and see the weeks released so far. Subscribers, the trainer and admins open the program's **Discussion board** to ask questions and reply; `admin` reviews reported posts under **Reports**.
 
 To sell a program, the trainer opens **Payouts** and finishes Stripe's onboarding, then gives the program a one-time or subscription price before publishing. Members buy with Stripe's test card `4242 4242 4242 4242`, manage subscriptions under **My programs → Manage billing**, and trainers refund sales from **Payouts**. Admins see every purchase under **Purchases**.
 

@@ -43,7 +43,16 @@ public interface IProgramCatalog
     Task<ProgramSummary?> GetSummaryAsync(Guid programId, CancellationToken cancellationToken);
 
     Task<IReadOnlyDictionary<Guid, ProgramSummary>> GetSummariesAsync(IReadOnlyCollection<Guid> programIds, CancellationToken cancellationToken);
+
+    /// <summary>Every trainer with at least one published program, for the trainer directory.</summary>
+    Task<IReadOnlyList<string>> GetPublishingTrainerIdsAsync(CancellationToken cancellationToken);
+
+    /// <summary>Published-program and review totals for these trainers; trainers without a published program are left out.</summary>
+    Task<IReadOnlyDictionary<string, TrainerCatalogStats>> GetTrainerStatsAsync(IReadOnlyCollection<string> trainerIds, CancellationToken cancellationToken);
 }
+
+/// <summary>A trainer's published programs, and the review totals across them (visible reviews only).</summary>
+public sealed record TrainerCatalogStats(int ProgramCount, int RatingCount, int RatingSum);
 
 /// <summary>A prescribed set, as the trainer wrote it.</summary>
 public sealed record PlannedSet(int? Reps, decimal? WeightKg, int? DurationSec, int? DistanceM, int? RestSec, decimal? Rpe);

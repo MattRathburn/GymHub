@@ -171,13 +171,75 @@ export interface PresignedUpload {
   expiresAt: string;
 }
 
+export type ProgramSort = 'Newest' | 'TopRated' | 'PriceLow' | 'PriceHigh';
+
 export interface BrowseQuery {
   search?: string;
   trainerId?: string;
   free?: boolean | null;
+  pricing?: PricingModel | null;
   kind?: ProgramKind | null;
+  sort?: ProgramSort | null;
   pageIndex?: number;
   pageSize?: number;
+}
+
+export const catalogPageSize = 12;
+
+/** The catalog's filters, kept in the URL as ?q=&pricing=&kind=&sort=&page= (page is 1-based there). */
+export interface CatalogState {
+  q: string;
+  pricing: PricingModel | null;
+  kind: ProgramKind | null;
+  sort: ProgramSort;
+  /** 0-based. */
+  page: number;
+}
+
+export interface CatalogParams {
+  q?: string;
+  pricing?: string;
+  kind?: string;
+  sort?: string;
+  page?: string;
+}
+
+const pricingModels: PricingModel[] = ['Free', 'OneTime', 'Recurring'];
+const programKinds: ProgramKind[] = ['Finite', 'Ongoing'];
+const programSorts: ProgramSort[] = ['Newest', 'TopRated', 'PriceLow', 'PriceHigh'];
+
+/** Reads the catalog state from query parameters, ignoring anything unknown. */
+export function readCatalogState(params: CatalogParams): CatalogState {
+  const page = Number.parseInt(params.page ?? '', 10);
+  return {
+    q: params.q?.trim() ?? '',
+    pricing: pricingModels.find((m) => m === params.pricing) ?? null,
+    kind: programKinds.find((k) => k === params.kind) ?? null,
+    sort: programSorts.find((s) => s === params.sort) ?? 'Newest',
+    page: Number.isFinite(page) && page > 1 ? page - 1 : 0,
+  };
+}
+
+/** Query parameters for a catalog state; defaults are left out (null removes them from the URL). */
+export function catalogQueryParams(state: CatalogState): Record<string, string | null> {
+  return {
+    q: state.q || null,
+    pricing: state.pricing,
+    kind: state.kind,
+    sort: state.sort === 'Newest' ? null : state.sort,
+    page: state.page > 0 ? String(state.page + 1) : null,
+  };
+}
+
+export function browseQueryFor(state: CatalogState): BrowseQuery {
+  return {
+    search: state.q || undefined,
+    pricing: state.pricing,
+    kind: state.kind,
+    sort: state.sort,
+    pageIndex: state.page,
+    pageSize: catalogPageSize,
+  };
 }
 
 export function formatPrice(price: ProgramPrice): string {

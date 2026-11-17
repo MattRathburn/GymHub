@@ -9,6 +9,7 @@ import {
   MemberProfile,
   MyTrainerProfile,
   TrainerApplication,
+  TrainerCard,
   TrainerDetailsRequest,
   TrainerProfile,
 } from './trainer.model';
@@ -17,6 +18,16 @@ import {
 export class TrainersService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiBaseUrl}/trainers`;
+
+  // Directory
+
+  directory(search: string, pageIndex = 0, pageSize = 12): Observable<PagedResult<TrainerCard>> {
+    let params = new HttpParams().set('pageIndex', pageIndex).set('pageSize', pageSize);
+    if (search.trim()) {
+      params = params.set('search', search.trim());
+    }
+    return this.http.get<PagedResult<TrainerCard>>(`${this.baseUrl}/`, { params });
+  }
 
   // Applying
 

@@ -4,8 +4,19 @@ import { adminGuard, authGuard, trainerGuard } from './core/auth/auth.guards';
 export const appRoutes: Route[] = [
   {
     path: '',
+    pathMatch: 'full',
+    title: 'GymHub',
+    loadComponent: () => import('./features/home/landing.component').then((m) => m.LandingComponent),
+  },
+  {
+    path: 'programs',
     title: 'GymHub · Programs',
     loadComponent: () => import('./features/programs/program-list.component').then((m) => m.ProgramListComponent),
+  },
+  {
+    path: 'trainers',
+    title: 'GymHub · Trainers',
+    loadComponent: () => import('./features/trainers/trainer-directory.component').then((m) => m.TrainerDirectoryComponent),
   },
   {
     path: 'programs/:id',

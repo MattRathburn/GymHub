@@ -56,7 +56,7 @@ import { SubscriptionsService } from './subscriptions.service';
               </li>
             } @empty {
               <li class="text-slate-500">
-                You haven't joined a program yet. <a routerLink="/" class="text-indigo-600 underline">Browse programs</a>
+                You haven't joined a program yet. <a routerLink="/programs" class="text-indigo-600 underline">Browse programs</a>
               </li>
             }
           </ul>
