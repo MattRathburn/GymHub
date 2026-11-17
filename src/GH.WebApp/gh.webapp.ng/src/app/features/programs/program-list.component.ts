@@ -3,6 +3,8 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { debounceTime, switchMap } from 'rxjs';
 import { LoadState, toLoadState } from '../../core/http/load-state';
+import { StarRatingComponent } from '../reviews/star-rating.component';
+import { formatRating } from '../reviews/reviews.model';
 import { PagedResult, ProgramCard, formatPrice } from './program.model';
 import { ProgramsService } from './programs.service';
 
@@ -10,7 +12,7 @@ type PriceFilter = 'all' | 'free' | 'paid';
 
 @Component({
   selector: 'app-program-list',
-  imports: [RouterLink],
+  imports: [RouterLink, StarRatingComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto max-w-6xl px-4 py-8">
@@ -58,7 +60,11 @@ type PriceFilter = 'all' | 'free' | 'paid';
                   @if (card.summary) {
                     <p class="mt-1 text-sm text-slate-600">{{ card.summary }}</p>
                   }
-                  <p class="mt-3 text-xs text-slate-500">
+                  <p class="mt-3 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+                    @if (card.rating.count) {
+                      <app-star-rating [value]="card.rating.average" />
+                      <span>{{ formatRating(card.rating) }} ·</span>
+                    }
                     {{ card.kind === 'Finite' ? 'Fixed dates' : 'Ongoing' }} · {{ card.weekCount }} weeks
                   </p>
                 </a>
@@ -76,6 +82,7 @@ export class ProgramListComponent {
   protected readonly search = signal('');
   protected readonly price = signal<PriceFilter>('all');
   protected readonly formatPrice = formatPrice;
+  protected readonly formatRating = formatRating;
 
   private readonly query = computed(() => ({
     search: this.search().trim(),

@@ -138,7 +138,7 @@ export const appRoutes: Route[] = [
   },
   {
     path: 'admin/reports',
-    title: 'GymHub · Reported posts',
+    title: 'GymHub · Reports',
     canActivate: [adminGuard],
     loadComponent: () => import('./features/discussions/admin/reports.component').then((m) => m.ReportsComponent),
   },

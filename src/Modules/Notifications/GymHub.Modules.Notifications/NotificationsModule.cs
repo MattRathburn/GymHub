@@ -11,6 +11,7 @@ using GymHub.Modules.Notifications.Features.Preferences;
 using GymHub.Modules.Notifications.Handlers;
 using GymHub.Modules.Notifications.Realtime;
 using GymHub.Modules.Programs.Contracts;
+using GymHub.Modules.Reviews.Contracts;
 using GymHub.Modules.Subscriptions.Contracts;
 using GymHub.Modules.Trainers.Contracts;
 using Microsoft.AspNetCore.Builder;
@@ -62,6 +63,7 @@ public sealed class NotificationsModule : IModule
         services.AddIntegrationEventHandler<SubscriptionTrialEnding, TrialEndingHandler>();
         services.AddIntegrationEventHandler<SubscriptionPaymentFailed, PaymentFailedHandler>();
         services.AddIntegrationEventHandler<PaidAccessEnded, AccessEndedHandler>();
+        services.AddIntegrationEventHandler<ReviewPosted, ReviewPostedHandler>();
 
         services.AddScoped<InboxHandler>();
         services.AddScoped<PreferencesHandler>();

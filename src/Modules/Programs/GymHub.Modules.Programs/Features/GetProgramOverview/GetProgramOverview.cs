@@ -14,7 +14,7 @@ public sealed record WeekOutline(Guid Id, int Number, string Title, DateOnly Rel
 public sealed record ProgramOverview(
     Guid Id, string TrainerId, string Title, string? Summary, string? Description,
     ProgramKind Kind, DateOnly? StartsOn, DateOnly? EndsOn, ProgramPrice Price,
-    Uri? CoverUrl, IReadOnlyList<MediaDto> Media, IReadOnlyList<WeekOutline> Weeks);
+    Uri? CoverUrl, IReadOnlyList<MediaDto> Media, IReadOnlyList<WeekOutline> Weeks, RatingDto Rating);
 
 internal sealed class GetProgramOverviewHandler(ProgramsDbContext db, ProgramContentMapper mapper)
 {
@@ -33,7 +33,8 @@ internal sealed class GetProgramOverviewHandler(ProgramsDbContext db, ProgramCon
             program.Id, program.TrainerId, program.Title, program.Summary, program.Description,
             program.Kind, program.StartsOn, program.EndsOn, program.CurrentPrice.Price,
             mapper.CoverUrl(program), mapper.MediaFor(program, MediaTarget.Program, program.Id),
-            [.. program.Weeks.OrderBy(w => w.Number).Select(w => new WeekOutline(w.Id, w.Number, w.Title, w.ReleasesOn, w.IsReleased(today)))]);
+            [.. program.Weeks.OrderBy(w => w.Number).Select(w => new WeekOutline(w.Id, w.Number, w.Title, w.ReleasesOn, w.IsReleased(today)))],
+            RatingDto.From(program));
     }
 }
 

@@ -42,6 +42,14 @@ public sealed class TrainingProgram
     /// <summary>Mirrors CurrentPrice.Price.IsFree so the catalog can filter on it in SQL.</summary>
     public bool IsFree { get; private set; } = true;
 
+    /// <summary>A copy of the Reviews module's rating (visible reviews only), so the catalog can show and sort by it.</summary>
+    public int RatingCount { get; private set; }
+
+    public int RatingSum { get; private set; }
+
+    /// <summary>The version of the copied rating; an older one arriving late is ignored.</summary>
+    public long RatingVersion { get; private set; }
+
     public IReadOnlyList<ProgramWeek> Weeks => _weeks;
     public IReadOnlyList<PriceVersion> Prices => _prices;
     public IReadOnlyList<MediaAttachment> Media => _media;

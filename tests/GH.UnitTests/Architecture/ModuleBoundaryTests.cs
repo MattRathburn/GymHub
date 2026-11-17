@@ -6,6 +6,8 @@ using GymHub.Modules.Discussions.Contracts;
 using GymHub.Modules.Notifications;
 using GymHub.Modules.Programs;
 using GymHub.Modules.Programs.Contracts;
+using GymHub.Modules.Reviews;
+using GymHub.Modules.Reviews.Contracts;
 using GymHub.Modules.Subscriptions;
 using GymHub.Modules.Subscriptions.Contracts;
 using GymHub.Modules.Trainers;
@@ -28,7 +30,8 @@ public class ModuleBoundaryTests
         typeof(DiscussionsModule).Assembly,
         typeof(BillingModule).Assembly,
         typeof(NotificationsModule).Assembly,
-        typeof(TrainingLogModule).Assembly
+        typeof(TrainingLogModule).Assembly,
+        typeof(ReviewsModule).Assembly
     ];
 
     private static readonly Assembly[] ContractAssemblies =
@@ -37,7 +40,8 @@ public class ModuleBoundaryTests
         typeof(IEntitlements).Assembly,
         typeof(TrainerApproved).Assembly,
         typeof(DiscussionThreadStarted).Assembly,
-        typeof(IPayoutReadiness).Assembly
+        typeof(IPayoutReadiness).Assembly,
+        typeof(ReviewPosted).Assembly
     ];
 
     public static TheoryData<string> ModuleNames => [.. ModuleAssemblies.Select(a => a.GetName().Name!)];

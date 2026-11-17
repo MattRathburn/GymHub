@@ -12,7 +12,8 @@ public enum NotificationType
     PriceChangeScheduled,
     TrialEnding,
     PaymentFailed,
-    AccessEnded
+    AccessEnded,
+    ReviewPosted
 }
 
 public enum NotificationGroup
@@ -42,6 +43,7 @@ public static class NotificationCatalog
         new(NotificationType.PaymentFailed, NotificationGroup.Billing, "A subscription payment failed", true, true, true),
         new(NotificationType.AccessEnded, NotificationGroup.Billing, "Your access to a program ended", true, true, true),
         new(NotificationType.NewMember, NotificationGroup.Trainer, "Someone joins or buys your program", true, false, false),
+        new(NotificationType.ReviewPosted, NotificationGroup.Trainer, "Someone reviews your program", true, false, false),
         new(NotificationType.TrainerApproved, NotificationGroup.Trainer, "Your trainer application is approved", true, true, true)
     ];
 

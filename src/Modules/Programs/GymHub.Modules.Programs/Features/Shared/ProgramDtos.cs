@@ -1,8 +1,15 @@
 using GymHub.BuildingBlocks.Storage;
 using GymHub.Modules.Programs.Contracts;
 using GymHub.Modules.Programs.Domain;
+using GymHub.Modules.Reviews.Contracts;
 
 namespace GymHub.Modules.Programs.Features.Shared;
+
+/// <summary>A program's star rating from its visible reviews; Average is null without reviews.</summary>
+public sealed record RatingDto(decimal? Average, int Count)
+{
+    public static RatingDto From(TrainingProgram program) => new(Ratings.Average(program.RatingCount, program.RatingSum), program.RatingCount);
+}
 
 public sealed record MediaDto(Guid Id, MediaKind Kind, string ContentType, string? Caption, Uri Url);
 

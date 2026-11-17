@@ -18,7 +18,7 @@ Welcome to the **Gym Hub**! Trainers build workout programs and grow a following
 - Subscriber-only discussion board per program: questions with answers, nested replies, live updates, and moderation with a report queue
 - Training log: log program or freestyle workouts, with history, per-exercise progress charts, personal records and program progress
 - Notifications: an in-app inbox with a live unread count, emails, and per-type settings
-- Reviews *(planned)*
+- Reviews: members with access rate programs 1 to 5 stars, the trainer replies, admins hide reported reviews, and ratings show in the catalog
 
 ## Technologies
 - **.NET 10** with ASP.NET Core Minimal APIs
@@ -88,3 +88,5 @@ To sell a program, the trainer opens **Payouts** and finishes Stripe's onboardin
 The bell in the nav shows notifications live: new weeks, replies, new threads for the trainer, programs from followed trainers, and billing changes. Choose in-app and email per type under **Notifications → Settings**. Locally, emails land in Mailpit, linked from the Aspire dashboard.
 
 Members log workouts under **Training log**, or with **Log workout** next to a released workout on a program page (pre-filled with the planned sets). Each exercise gets a progress chart and a list of personal records, and the program page shows how many released workouts you've logged.
+
+Members with access review a program at the bottom of its page; the rating shows on catalog cards and the program page. The trainer replies under each review, anyone signed in can report one, and admins hide reported reviews from the **Reviews** tab under **Reports**.

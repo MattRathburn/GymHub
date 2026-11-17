@@ -48,7 +48,7 @@ Each is its own PR, built in this order. Discovery uses ratings from Reviews.
   - Deletion is blocked while a paid subscription is active, until it's cancelled.
   - The Keycloak user is deleted with the admin client.
 - **Data export:** a JSON download built from each module's contract.
-- **Pages:** terms, privacy policy, a footer, a real 404 page (instead of `**` redirecting to `/`), a "Sign up" button (Keycloak registration is already on), and leaving free programs (Subscriptions has no unenroll slice today).
+- **Pages:** terms, privacy policy, a footer, a real 404 page (instead of `**` redirecting to `/`), a "Sign up" button (Keycloak registration is already on), (Leaving a free program already exists: `DELETE /api/v1/subscriptions/programs/{id}` and the "Leave program" button.)
 - **Sign-up checks:** turn on Keycloak email verification and password reset (needs the production SMTP from Milestone 5).
 
 ### 2d. Admin moderation

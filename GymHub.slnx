@@ -34,6 +34,10 @@
     <Project Path="src/Modules/Programs/GymHub.Modules.Programs/GymHub.Modules.Programs.csproj" />
     <Project Path="src/Modules/Programs/GymHub.Modules.Programs.Contracts/GymHub.Modules.Programs.Contracts.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Reviews/">
+    <Project Path="src/Modules/Reviews/GymHub.Modules.Reviews/GymHub.Modules.Reviews.csproj" />
+    <Project Path="src/Modules/Reviews/GymHub.Modules.Reviews.Contracts/GymHub.Modules.Reviews.Contracts.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Subscriptions/">
     <Project Path="src/Modules/Subscriptions/GymHub.Modules.Subscriptions/GymHub.Modules.Subscriptions.csproj" />
     <Project Path="src/Modules/Subscriptions/GymHub.Modules.Subscriptions.Contracts/GymHub.Modules.Subscriptions.Contracts.csproj" />

@@ -6,18 +6,22 @@ import { Observable, firstValueFrom, switchMap } from 'rxjs';
 import { LoadState, toLoadState } from '../../../core/http/load-state';
 import { problemMessage } from '../../../core/http/problem';
 import { PagedResult } from '../../programs/program.model';
+import { ReviewReportsComponent } from '../../reviews/admin/review-reports.component';
 import { Report, ReportStatus, reportReasons } from '../discussion.model';
 import { DiscussionsService } from '../discussions.service';
 
-/** Admins review reported posts: dismiss the report, or hide the post (closing every open report on it). */
+/**
+ * Admins work through reports. Posts: dismiss the report, or hide the post (closing every open report on it). The
+ * Reviews tab does the same for reported reviews.
+ */
 @Component({
   selector: 'app-reports',
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, ReviewReportsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto max-w-4xl px-4 py-8">
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <h1 class="text-2xl font-semibold">Reported posts</h1>
+        <h1 class="text-2xl font-semibold">Reports</h1>
         <select class="input w-40" [value]="status()" (change)="status.set($any($event.target).value)">
           <option value="Open">Open</option>
           <option value="Actioned">Actioned</option>
@@ -25,55 +29,74 @@ import { DiscussionsService } from '../discussions.service';
         </select>
       </div>
 
-      @if (notice(); as message) {
-        <p class="mt-4 text-sm text-emerald-700">{{ message }}</p>
-      }
-      @if (error(); as message) {
-        <p class="mt-4 text-sm text-rose-600">{{ message }}</p>
-      }
-
-      @switch (reports().status) {
-        @case ('loading') {
-          <p class="mt-6 text-slate-500">Loading…</p>
+      <div class="mt-4 flex gap-1 border-b border-slate-200" role="tablist">
+        @for (t of tabs; track t.value) {
+          <button
+            role="tab"
+            class="-mb-px border-b-2 px-4 py-2 text-sm"
+            [class.border-indigo-600]="tab() === t.value"
+            [class.text-indigo-700]="tab() === t.value"
+            [class.border-transparent]="tab() !== t.value"
+            [class.text-slate-600]="tab() !== t.value"
+            [attr.aria-selected]="tab() === t.value"
+            (click)="tab.set(t.value)"
+          >{{ t.label }}</button>
         }
-        @case ('error') {
-          <p class="mt-6 text-rose-600">Couldn't load reports.</p>
+      </div>
+
+      @if (tab() === 'reviews') {
+        <app-review-reports [status]="status()" />
+      } @else {
+        @if (notice(); as message) {
+          <p class="mt-4 text-sm text-emerald-700">{{ message }}</p>
         }
-      }
+        @if (error(); as message) {
+          <p class="mt-4 text-sm text-rose-600">{{ message }}</p>
+        }
 
-      @if (reports(); as state) {
-        @if (state.status === 'ok') {
-          <ul class="mt-6 space-y-4">
-            @for (report of state.value.data; track report.id) {
-              <li class="card">
-                <div class="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p class="font-semibold">{{ reasonLabel(report) }}</p>
-                    <p class="text-xs text-slate-500">Reported {{ report.createdAt | date: 'medium' }} · by user {{ report.reporterId }}</p>
-                  </div>
-                  <a [routerLink]="['/programs', report.programId, 'discussion', report.threadId]" class="text-sm text-indigo-600 hover:underline">
-                    {{ report.threadTitle }}
-                  </a>
-                </div>
-                @if (report.note) {
-                  <p class="mt-2 text-sm text-slate-700">“{{ report.note }}”</p>
-                }
-                <blockquote class="mt-3 whitespace-pre-line rounded border-l-4 border-slate-300 bg-slate-50 p-3 text-sm text-slate-800">
-                  <span class="mb-1 block text-xs text-slate-500">{{ report.postAuthorName }} wrote@if (report.postIsHidden) { · now hidden}:</span>
-                  {{ report.postBody || '(deleted)' }}
-                </blockquote>
+        @switch (reports().status) {
+          @case ('loading') {
+            <p class="mt-6 text-slate-500">Loading…</p>
+          }
+          @case ('error') {
+            <p class="mt-6 text-rose-600">Couldn't load reports.</p>
+          }
+        }
 
-                @if (report.status === 'Open') {
-                  <div class="mt-4 flex gap-2">
-                    <button class="btn-danger" [disabled]="busy()" (click)="action(report)">Hide post</button>
-                    <button class="btn-secondary" [disabled]="busy()" (click)="dismiss(report)">Dismiss</button>
+        @if (reports(); as state) {
+          @if (state.status === 'ok') {
+            <ul class="mt-6 space-y-4">
+              @for (report of state.value.data; track report.id) {
+                <li class="card">
+                  <div class="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p class="font-semibold">{{ reasonLabel(report) }}</p>
+                      <p class="text-xs text-slate-500">Reported {{ report.createdAt | date: 'medium' }} · by user {{ report.reporterId }}</p>
+                    </div>
+                    <a [routerLink]="['/programs', report.programId, 'discussion', report.threadId]" class="text-sm text-indigo-600 hover:underline">
+                      {{ report.threadTitle }}
+                    </a>
                   </div>
-                }
-              </li>
-            } @empty {
-              <li class="text-slate-500">No {{ status().toLowerCase() }} reports.</li>
-            }
-          </ul>
+                  @if (report.note) {
+                    <p class="mt-2 text-sm text-slate-700">“{{ report.note }}”</p>
+                  }
+                  <blockquote class="mt-3 whitespace-pre-line rounded border-l-4 border-slate-300 bg-slate-50 p-3 text-sm text-slate-800">
+                    <span class="mb-1 block text-xs text-slate-500">{{ report.postAuthorName }} wrote@if (report.postIsHidden) { · now hidden}:</span>
+                    {{ report.postBody || '(deleted)' }}
+                  </blockquote>
+
+                  @if (report.status === 'Open') {
+                    <div class="mt-4 flex gap-2">
+                      <button class="btn-danger" [disabled]="busy()" (click)="action(report)">Hide post</button>
+                      <button class="btn-secondary" [disabled]="busy()" (click)="dismiss(report)">Dismiss</button>
+                    </div>
+                  }
+                </li>
+              } @empty {
+                <li class="text-slate-500">No {{ status().toLowerCase() }} post reports.</li>
+              }
+            </ul>
+          }
         }
       }
     </section>
@@ -82,6 +105,12 @@ import { DiscussionsService } from '../discussions.service';
 export class ReportsComponent {
   private readonly discussions = inject(DiscussionsService);
 
+  protected readonly tabs = [
+    { value: 'posts', label: 'Posts' },
+    { value: 'reviews', label: 'Reviews' },
+  ] as const;
+
+  protected readonly tab = signal<'posts' | 'reviews'>('posts');
   protected readonly status = signal<ReportStatus>('Open');
   private readonly refresh = signal(0);
   protected readonly busy = signal(false);

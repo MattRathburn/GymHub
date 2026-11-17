@@ -265,6 +265,15 @@ namespace GymHub.Modules.Programs.Data.Migrations
                     b.Property<DateTime?>("PublishedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("RatingCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RatingSum")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("RatingVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<DateOnly?>("StartsOn")
                         .HasColumnType("date");
 

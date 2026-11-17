@@ -33,6 +33,13 @@ export interface ProgramCard {
   price: ProgramPrice;
   coverUrl: string | null;
   weekCount: number;
+  rating: ProgramRating;
+}
+
+/** A program's star rating from its visible reviews; average is null without reviews. */
+export interface ProgramRating {
+  average: number | null;
+  count: number;
 }
 
 export interface Media {
@@ -64,6 +71,7 @@ export interface ProgramOverview {
   coverUrl: string | null;
   media: Media[];
   weeks: WeekOutline[];
+  rating: ProgramRating;
 }
 
 export interface ExerciseSet {
