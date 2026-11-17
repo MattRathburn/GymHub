@@ -19,7 +19,7 @@ The roadmap is a series of milestones, each on its own branch with its own PR. F
   - a secret scan (gitleaks), so the "no private keys in tracked files" rule is enforced
 - Make `main` a protected branch that requires the CI check.
 - **Cleanup:**
-  - Remove leftovers: `EventBus` and `EventBusRabbitMQ` (unused), the `GH.Admin` and `GH.Plan.*` folders, and the unused Redis `plancache` resource. Milestone 6 brings Redis back for a real purpose.
+  - Remove leftovers: `EventBusRabbitMQ` (unused; `EventBus` stays, the outbox uses it), the `GH.Admin` and `GH.Plan.*` folders, the unused Redis `plancache` resource and unused AppHost packages. Milestone 4 brings Redis back for a real purpose.
   - Fix `README.md`: the module list, the `api-admin-client-secret` secret, and the dead Contributing and LICENSE links.
 
 ## Milestone 2: Product features

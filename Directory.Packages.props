@@ -16,14 +16,12 @@
     <!--<PackageVersion Include="Aspire.Hosting.AppHost" Version="$(AspireVersion)" />-->
     <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.2.0" />
-    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.Redis" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.Yarp" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.NodeJs" Version="9.5.2" />
     <PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.2.0" />
     <PackageVersion Include="Aspire.Npgsql" Version="$(AspireVersion)" />
     <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.2.0" />
-    <PackageVersion Include="Aspire.RabbitMQ.Client" Version="$(AspireVersion)" />
     <PackageVersion Include="Aspire.StackExchange.Redis" Version="$(AspireVersion)" />
     <PackageVersion Include="Aspire.Azure.AI.OpenAI" Version="$(AspireUnstablePackagesVersion)" />
     <PackageVersion Include="Aspire.Hosting.Keycloak" Version="13.2.0-preview.1.26170.3" />

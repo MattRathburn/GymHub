@@ -17,7 +17,6 @@
   </Folder>
   <Folder Name="/src/BuildingBlocks/">
     <Project Path="src/BuildingBlocks/EventBus/EventBus.csproj" />
-    <Project Path="src/BuildingBlocks/EventBusRabbitMQ/EventBusRabbitMQ.csproj" />
     <Project Path="src/BuildingBlocks/GymHub.BuildingBlocks/GymHub.BuildingBlocks.csproj" />
   </Folder>
   <Folder Name="/src/Modules/Billing/">

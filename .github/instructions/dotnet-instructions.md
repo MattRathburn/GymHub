@@ -41,7 +41,6 @@ PostgreSQL (schema per module) · Object storage · Outbox (in-process events)
   /BuildingBlocks
     /GymHub.BuildingBlocks   # IModule, auth policies, ModuleDbContext, outbox, validation, Result, paging, storage
     /EventBus                # IntegrationEvent + IIntegrationEventHandler (used by the outbox)
-    /EventBusRabbitMQ        # Unused until a module is extracted
   /Modules
     /<Module>
       /GymHub.Modules.<Module>            # internal: Domain/, Data/, Features/<Slice>/, <Module>Module.cs
@@ -114,7 +113,7 @@ dotnet ef migrations add <Name> --project src/Modules/<Module>/GymHub.Modules.<M
 * Integration events are records deriving from `IntegrationEvent`, declared in the publishing module's `.Contracts`.
 * Publish by queuing the event on the module's DbContext (`AddIntegrationEvent`, or by raising it from the aggregate and letting the DbContext collect it on save). It is written in the **same transaction** as the state change.
 * `OutboxDispatcher` delivers events in-process to handlers registered with `services.AddIntegrationEventHandler<TEvent, THandler>()`. Delivery is at-least-once: **handlers must be idempotent**.
-* RabbitMQ (`EventBusRabbitMQ`) is kept for when a module is split out; the event and handler types are the same.
+* There is no message broker. If a module is ever split out, a broker transport can reuse the same event and handler types (an earlier RabbitMQ transport is in git history).
 
 ---
 
