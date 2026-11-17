@@ -65,6 +65,23 @@ public class TrainingProgramTests
     }
 
     [Fact]
+    public void The_catalog_copy_of_the_price_follows_every_change()
+    {
+        var program = Ongoing();
+        Assert.Equal((PricingModel.Free, (long?)null), (program.PriceModel, program.PriceAmountMinor));
+
+        program.SetPricing(new ProgramPrice(PricingModel.Recurring, 1999, "USD", BillingInterval.Yearly), Now);
+        Assert.Equal((PricingModel.Recurring, (long?)1999, "USD", (BillingInterval?)BillingInterval.Yearly),
+            (program.PriceModel, program.PriceAmountMinor, program.PriceCurrency, program.PriceInterval));
+
+        program.AddWeek("Week 1", Today);
+        program.Publish(Now);
+        program.SetPricing(ProgramPrice.Free, Now);
+        Assert.Equal((PricingModel.Free, (long?)null, (string?)null, (BillingInterval?)null),
+            (program.PriceModel, program.PriceAmountMinor, program.PriceCurrency, program.PriceInterval));
+    }
+
+    [Fact]
     public void Draft_price_changes_replace_the_price_and_published_ones_add_a_version()
     {
         var program = Ongoing();

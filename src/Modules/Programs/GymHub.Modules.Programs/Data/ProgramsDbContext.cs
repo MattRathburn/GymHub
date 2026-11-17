@@ -61,6 +61,9 @@ public sealed class ProgramsDbContext(DbContextOptions<ProgramsDbContext> option
         program.Property(p => p.Id).ValueGeneratedNever();
         program.Property(p => p.TrainerId).HasMaxLength(100);
         program.Property(p => p.Title).HasMaxLength(200);
+        program.Property(p => p.PriceModel).HasConversion<string>().HasMaxLength(20);
+        program.Property(p => p.PriceCurrency).HasMaxLength(3);
+        program.Property(p => p.PriceInterval).HasConversion<string>().HasMaxLength(20);
         program.Property(p => p.Summary).HasMaxLength(500);
         program.Property(p => p.CoverObjectKey).HasMaxLength(300);
         program.Property(p => p.Kind).HasConversion<string>().HasMaxLength(20);

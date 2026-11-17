@@ -42,6 +42,18 @@ public sealed class TrainingProgram
     /// <summary>Mirrors CurrentPrice.Price.IsFree so the catalog can filter on it in SQL.</summary>
     public bool IsFree { get; private set; } = true;
 
+    /// <summary>Mirrors CurrentPrice.Price.Model so the catalog can filter by pricing type in SQL.</summary>
+    public PricingModel PriceModel { get; private set; } = PricingModel.Free;
+
+    /// <summary>Mirrors CurrentPrice.Price.AmountMinor (null when free) so the catalog can sort by price in SQL.</summary>
+    public long? PriceAmountMinor { get; private set; }
+
+    /// <summary>Mirrors CurrentPrice.Price.Currency (null when free); price sorting never compares across currencies.</summary>
+    public string? PriceCurrency { get; private set; }
+
+    /// <summary>Mirrors CurrentPrice.Price.Interval, so price sorting can compare yearly subscriptions per month.</summary>
+    public BillingInterval? PriceInterval { get; private set; }
+
     /// <summary>A copy of the Reviews module's rating (visible reviews only), so the catalog can show and sort by it.</summary>
     public int RatingCount { get; private set; }
 
@@ -150,6 +162,10 @@ public sealed class TrainingProgram
         }
 
         IsFree = price.IsFree;
+        PriceModel = price.Model;
+        PriceAmountMinor = price.IsFree ? null : price.AmountMinor;
+        PriceCurrency = price.IsFree ? null : price.Currency;
+        PriceInterval = price.IsFree ? null : price.Interval;
 
         if (Status == ProgramStatus.Draft)
         {

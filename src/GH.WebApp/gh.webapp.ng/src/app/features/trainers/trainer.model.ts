@@ -32,6 +32,19 @@ export interface TrainerProfile {
   isFollowing: boolean;
 }
 
+/** A trainer in the public directory (trainers with a published program). */
+export interface TrainerCard {
+  userId: string;
+  displayName: string;
+  bio: string | null;
+  specialties: string[];
+  avatarUrl: string | null;
+  followerCount: number;
+  programCount: number;
+  /** Across the trainer's published programs; average is null without reviews. */
+  rating: { average: number | null; count: number };
+}
+
 export interface MyTrainerProfile {
   userId: string;
   displayName: string;

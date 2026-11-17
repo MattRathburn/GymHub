@@ -9,6 +9,7 @@ using GymHub.Modules.Trainers.Features.EditMyProfile;
 using GymHub.Modules.Trainers.Features.FollowTrainer;
 using GymHub.Modules.Trainers.Features.GetTrainerProfile;
 using GymHub.Modules.Trainers.Features.ListFollowing;
+using GymHub.Modules.Trainers.Features.ListTrainers;
 using GymHub.Modules.Trainers.Features.ReviewApplications;
 using GymHub.Modules.Trainers.Features.SubmitApplication;
 using GymHub.Modules.Trainers.Identity;
@@ -35,7 +36,9 @@ public sealed class TrainersModule : IModule
         services.AddHttpClient<IIdentityAdmin, KeycloakIdentityAdmin>((sp, http) =>
             http.BaseAddress = sp.GetRequiredService<IOptions<KeycloakAdminOptions>>().Value.BaseAddress);
         services.AddIntegrationEventHandler<TrainerApproved, GrantTrainerRoleHandler>();
-        services.AddScoped<IProfileDirectory, ProfileDirectory>();
+        services.AddScoped<ProfileDirectory>();
+        services.AddScoped<IProfileDirectory>(sp => sp.GetRequiredService<ProfileDirectory>());
+        services.AddScoped<ITrainerDirectory>(sp => sp.GetRequiredService<ProfileDirectory>());
         services.AddScoped<IFollowers, Followers>();
 
         services.AddScoped<SubmitApplicationHandler>();
@@ -45,6 +48,7 @@ public sealed class TrainersModule : IModule
         services.AddScoped<EditMyMemberProfileHandler>();
         services.AddScoped<FollowTrainerHandler>();
         services.AddScoped<ListFollowingHandler>();
+        services.AddScoped<ListTrainersHandler>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
@@ -54,6 +58,7 @@ public sealed class TrainersModule : IModule
         EditMyProfileEndpoint.Map(endpoints);
         EditMyMemberProfileEndpoint.Map(endpoints);
         ListFollowingEndpoint.Map(endpoints);
+        ListTrainersEndpoint.Map(endpoints);
         FollowTrainerEndpoint.Map(endpoints);
         GetTrainerProfileEndpoint.Map(endpoints);
     }
