@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\Billing\GymHub.Modules.Billing.Contracts\GymHub.Modules.Billing.Contracts.csproj" />
     <ProjectReference Include="..\..\Discussions\GymHub.Modules.Discussions.Contracts\GymHub.Modules.Discussions.Contracts.csproj" />
     <ProjectReference Include="..\..\Programs\GymHub.Modules.Programs.Contracts\GymHub.Modules.Programs.Contracts.csproj" />
+    <ProjectReference Include="..\..\Reviews\GymHub.Modules.Reviews.Contracts\GymHub.Modules.Reviews.Contracts.csproj" />
     <ProjectReference Include="..\..\Subscriptions\GymHub.Modules.Subscriptions.Contracts\GymHub.Modules.Subscriptions.Contracts.csproj" />
     <ProjectReference Include="..\..\Trainers\GymHub.Modules.Trainers.Contracts\GymHub.Modules.Trainers.Contracts.csproj" />
   </ItemGroup>

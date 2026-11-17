@@ -1,5 +1,6 @@
 using FluentValidation;
 using GymHub.BuildingBlocks.Modules;
+using GymHub.BuildingBlocks.Outbox;
 using GymHub.BuildingBlocks.Persistence;
 using GymHub.Modules.Programs.Contracts;
 using GymHub.Modules.Programs.Data;
@@ -17,6 +18,7 @@ using GymHub.Modules.Programs.Features.PublishProgram;
 using GymHub.Modules.Programs.Features.SetProgramPricing;
 using GymHub.Modules.Programs.Features.Shared;
 using GymHub.Modules.Programs.Features.UpdateProgramDetails;
+using GymHub.Modules.Reviews.Contracts;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -39,6 +41,7 @@ public sealed class ProgramsModule : IModule
         services.AddScoped<ProgramContentMapper>();
         services.AddSingleton<WeekReleaseJob>();
         services.AddHostedService(sp => sp.GetRequiredService<WeekReleaseJob>());
+        services.AddIntegrationEventHandler<ProgramRatingChanged, ProgramRatingHandler>();
 
         services.AddScoped<CreateProgramHandler>();
         services.AddScoped<UpdateProgramDetailsHandler>();

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 GymHub is a workout-program platform: trainers (approved by an admin) publish programs, users subscribe or buy them, and each program gets a subscriber-only discussion board. It is a **modular monolith with vertical slices** on .NET 10 + Aspire, with a YARP **BFF** (`Gateway`), **Keycloak** auth, PostgreSQL, S3-compatible media storage, and an Angular 21 frontend.
 
-Built so far: the foundation and the **Programs**, **Subscriptions**, **Trainers** (applications, profiles, follows, member profiles), **Discussions**, **Billing** (Stripe Connect), **Notifications** and **Training Log** modules. Planned module, with its own plan to come: Reviews. Plans live in `docs/plans/`.
+Built so far: the foundation and the **Programs**, **Subscriptions**, **Trainers** (applications, profiles, follows, member profiles), **Discussions**, **Billing** (Stripe Connect), **Notifications**, **Training Log** and **Reviews** modules. The road to an MVP is `docs/plans/mvp-roadmap.md`; plans live in `docs/plans/`.
 
 The root `README.md` is partly stale; trust the code, `GymHub.AppHost/Program.cs` and `.github/instructions/` over it.
 
@@ -101,6 +101,12 @@ Notification emails go to a **Mailpit** container (web UI linked from the Aspire
 - `LoggedExercise` rows carry `ExerciseKey` (normalized name, e.g. `back-squat`) and summary columns (`TopWeightKg`, `BestE1RmKg` by Epley for 1 to 12 reps, `VolumeKg`, `TotalReps`) so progress is plain SQL. The Angular `training.model.ts` repeats the key and e1RM rules.
 - Personal records are derived (`PersonalRecords.History`), never stored: a session sets a record when it beats every earlier session for that key.
 - Logs are private to the member. The program editor's "Edit workout" keeps workout and exercise ids so logs and adherence stay linked.
+
+**Reviews module** (route prefix `reviews`, schema `reviews`):
+- One `Review` per member per program (1–5 stars, optional text), written by anyone with current access (`IEntitlements`) to a published program, never its trainer. When access ends the review stays and counts but is locked; the author can still delete it. The trainer adds one editable reply.
+- Reports work like Discussions' (`ReviewReport`); admins handle them in the "Reviews" tab of `/admin/reports`, and acting hides the review.
+- Every change that moves a rating runs through `RatingWriter`: a per-program advisory lock, then `ProgramRating` (count, sum of visible reviews, version) is recomputed and `ProgramRatingChanged` raised. Programs keeps a copy (`RatingCount`, `RatingSum`, `RatingVersion` on `TrainingProgram`) with a version-guarded `ExecuteUpdate`, so cards and the overview carry `Rating` and 2b can sort by it in SQL.
+- `ReviewPosted` (first write only) notifies the trainer (`NotificationType.ReviewPosted`); links end in `#reviews`, which the program page scrolls to.
 
 **Other projects:** `GymHub.MigrationService` migrates every module and then exits; the API `WaitForCompletion`s it.
 

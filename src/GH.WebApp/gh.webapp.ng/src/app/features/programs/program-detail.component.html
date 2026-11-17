@@ -19,6 +19,10 @@
         @if (p.summary) {
           <p class="mt-1 text-lg text-slate-600">{{ p.summary }}</p>
         }
+        <button type="button" class="mt-1 flex items-center gap-2 text-sm text-slate-600 hover:text-indigo-700" (click)="scrollToReviews()">
+          <app-star-rating [value]="p.rating.average" />
+          <span>{{ formatRating(p.rating) }}</span>
+        </button>
         <a [routerLink]="['/trainers', p.trainerId]" class="mt-1 inline-block text-sm text-indigo-600 hover:underline">About the trainer</a>
         <p class="mt-2 text-sm text-slate-500">
           @if (p.kind === 'Finite') {
@@ -125,5 +129,7 @@
         <li class="px-4 py-2 text-sm text-slate-500">Nothing scheduled yet.</li>
       }
     </ul>
+
+    <app-program-reviews class="mt-10 block" [programId]="p.id" [trainerId]="p.trainerId" [hasAccess]="hasAccess()" />
   }
 </section>

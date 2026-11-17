@@ -5,6 +5,7 @@ using GymHub.Modules.Discussions.Contracts;
 using GymHub.Modules.Notifications.Delivery;
 using GymHub.Modules.Notifications.Domain;
 using GymHub.Modules.Programs.Contracts;
+using GymHub.Modules.Reviews.Contracts;
 using GymHub.Modules.Subscriptions.Contracts;
 using GymHub.Modules.Trainers.Contracts;
 
@@ -176,6 +177,25 @@ internal sealed class FreeEnrollmentHandler(NotificationPublisher publisher, Not
             "A new member of your free program.",
             NotificationContext.ProgramLink(@event.ProgramId),
             $"enrolled:{@event.Id}")], actorId: @event.UserId);
+    }
+}
+
+internal sealed class ReviewPostedHandler(NotificationPublisher publisher, NotificationContext context) : IIntegrationEventHandler<ReviewPosted>
+{
+    public async Task Handle(ReviewPosted @event)
+    {
+        var title = await context.ProgramTitleAsync(@event.ProgramId);
+        var reviewer = await context.NameAsync(@event.AuthorId);
+        var stars = @event.Stars == 1 ? "1 star" : $"{@event.Stars} stars";
+
+        await publisher.PublishAsync([new NotificationDraft(
+            @event.TrainerId,
+            NotificationType.ReviewPosted,
+            $"{reviewer} reviewed {title}",
+            $"They gave it {stars}. You can reply on the program page.",
+            $"{NotificationContext.ProgramLink(@event.ProgramId)}#reviews",
+            // Per author and program, so deleting and rewriting a review doesn't notify again.
+            $"review-posted:{@event.ProgramId}:{@event.AuthorId}")], actorId: @event.AuthorId);
     }
 }
 

@@ -12,7 +12,7 @@ namespace GymHub.Modules.Programs.Features.BrowsePrograms;
 
 public sealed record BrowseProgramsQuery(string? Search, string? TrainerId, ProgramKind? Kind, bool? Free);
 
-public sealed record ProgramCard(Guid Id, string Title, string? Summary, string TrainerId, ProgramKind Kind, DateOnly? StartsOn, DateOnly? EndsOn, ProgramPrice Price, Uri? CoverUrl, int WeekCount);
+public sealed record ProgramCard(Guid Id, string Title, string? Summary, string TrainerId, ProgramKind Kind, DateOnly? StartsOn, DateOnly? EndsOn, ProgramPrice Price, Uri? CoverUrl, int WeekCount, RatingDto Rating);
 
 internal sealed class BrowseProgramsHandler(ProgramsDbContext db, ProgramContentMapper mapper)
 {
@@ -54,7 +54,7 @@ internal sealed class BrowseProgramsHandler(ProgramsDbContext db, ProgramContent
 
         var cards = items.Select(p => new ProgramCard(
             p.Id, p.Title, p.Summary, p.TrainerId, p.Kind, p.StartsOn, p.EndsOn,
-            p.CurrentPrice.Price, mapper.CoverUrl(p), p.Weeks.Count)).ToList();
+            p.CurrentPrice.Price, mapper.CoverUrl(p), p.Weeks.Count, RatingDto.From(p))).ToList();
 
         return new PagedResult<ProgramCard>(page.PageIndex, page.Take, count, cards);
     }

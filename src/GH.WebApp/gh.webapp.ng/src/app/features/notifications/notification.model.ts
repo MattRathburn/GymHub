@@ -11,7 +11,8 @@ export type NotificationType =
   | 'PriceChangeScheduled'
   | 'TrialEnding'
   | 'PaymentFailed'
-  | 'AccessEnded';
+  | 'AccessEnded'
+  | 'ReviewPosted';
 
 export type NotificationGroup = 'Training' | 'Discussions' | 'Billing' | 'Trainer';
 

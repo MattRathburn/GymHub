@@ -8,12 +8,13 @@ using GymHub.Modules.Billing;
 using GymHub.Modules.Discussions;
 using GymHub.Modules.Notifications;
 using GymHub.Modules.Programs;
+using GymHub.Modules.Reviews;
 using GymHub.Modules.Subscriptions;
 using GymHub.Modules.Trainers;
 using GymHub.Modules.TrainingLog;
 using GymHub.ServiceDefaults;
 
-IModule[] modules = [new ProgramsModule(), new SubscriptionsModule(), new TrainersModule(), new DiscussionsModule(), new BillingModule(), new NotificationsModule(), new TrainingLogModule()];
+IModule[] modules = [new ProgramsModule(), new SubscriptionsModule(), new TrainersModule(), new DiscussionsModule(), new BillingModule(), new NotificationsModule(), new TrainingLogModule(), new ReviewsModule()];
 
 var builder = WebApplication.CreateBuilder(args);
 

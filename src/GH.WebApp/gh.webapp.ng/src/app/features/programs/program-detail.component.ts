@@ -5,6 +5,9 @@ import { Observable, catchError, firstValueFrom, of, switchMap } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { LoadState, toLoadState } from '../../core/http/load-state';
 import { problemMessage } from '../../core/http/problem';
+import { ProgramReviewsComponent } from '../reviews/program-reviews.component';
+import { formatRating } from '../reviews/reviews.model';
+import { StarRatingComponent } from '../reviews/star-rating.component';
 import { Purchase, Redirect, givesAccess, purchaseStatusLine } from '../billing/billing.model';
 import { BillingService, goToStripe } from '../billing/billing.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
@@ -16,7 +19,7 @@ import { WorkoutViewComponent } from './workout-view.component';
 
 @Component({
   selector: 'app-program-detail',
-  imports: [RouterLink, WorkoutViewComponent],
+  imports: [RouterLink, WorkoutViewComponent, ProgramReviewsComponent, StarRatingComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './program-detail.component.html',
 })
@@ -42,6 +45,7 @@ export class ProgramDetailComponent {
   protected readonly actionError = signal<string | null>(null);
   protected readonly formatPrice = formatPrice;
   protected readonly formatTrial = formatTrial;
+  protected readonly formatRating = formatRating;
   protected readonly purchaseStatusLine = purchaseStatusLine;
 
   protected readonly overview = toSignal(
@@ -139,6 +143,10 @@ export class ProgramDetailComponent {
         timer = setTimeout(poll, 1000);
       });
     });
+  }
+
+  protected scrollToReviews(): void {
+    document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' });
   }
 
   protected buy(): Promise<void> {

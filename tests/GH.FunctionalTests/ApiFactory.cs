@@ -14,6 +14,7 @@ using GymHub.Modules.Notifications.Data;
 using GymHub.Modules.Notifications.Delivery;
 using GymHub.Modules.Programs.Contracts;
 using GymHub.Modules.Programs.Data;
+using GymHub.Modules.Reviews.Data;
 using GymHub.Modules.Subscriptions.Data;
 using GymHub.Modules.Trainers.Data;
 using GymHub.Modules.Trainers.Identity;
@@ -62,6 +63,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await scope.ServiceProvider.GetRequiredService<BillingDbContext>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<NotificationsDbContext>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<TrainingLogDbContext>().Database.MigrateAsync();
+        await scope.ServiceProvider.GetRequiredService<ReviewsDbContext>().Database.MigrateAsync();
     }
 
     /// <summary>Delivers one event straight to one handler, as the outbox dispatcher would.</summary>
