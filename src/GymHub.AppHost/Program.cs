@@ -39,10 +39,6 @@ var mediaStore = builder.AddContainer("media-store", "rustfs/rustfs", "1.0.4")
 var media = builder.AddConnectionString("media", ReferenceExpression.Create(
     $"Endpoint={mediaStore.GetEndpoint("s3")};AccessKey={mediaAccessKey};SecretKey={mediaSecretKey}"));
 
-builder.AddRedis("plancache")
-    .WithDataVolume()
-    .WithRedisInsight();
-
 // Catches every notification email locally; its web UI lists them. No secrets needed.
 var mailpit = builder.AddContainer("mailpit", "axllent/mailpit", "v1.27")
     .WithEndpoint(targetPort: 1025, name: "smtp")

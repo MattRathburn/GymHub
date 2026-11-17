@@ -2,7 +2,6 @@
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Yarp;
 using Aspire.Hosting.Yarp.Transforms;
-using Azure.ResourceManager;
 using System;
 using System.Collections.Generic;
 using System.Linq;

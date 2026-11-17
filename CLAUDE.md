@@ -35,7 +35,7 @@ Build settings that bite: **`TreatWarningsAsErrors`** is on (xUnit analyzers inc
 
 ### Local secrets and seed data
 
-AppHost user-secrets must hold `Parameters:bff-client-secret`, `Parameters:media-access-key` and `Parameters:media-secret-key`. The bff secret is injected into both Keycloak's realm import and the Gateway.
+AppHost user-secrets must hold `Parameters:bff-client-secret`, `Parameters:api-admin-client-secret`, `Parameters:media-access-key` and `Parameters:media-secret-key`. The bff secret is injected into both Keycloak's realm import and the Gateway; the api-admin secret into the realm's `gymhub-api-admin` service account and the API.
 
 Stripe is optional: with `Parameters:stripe-secret-key` (an `sk_test_` key) and `Parameters:stripe-webhook-secret` (the `whsec_` value from `stripe listen --forward-to https://localhost:7179/stripe/webhook`) set, the AppHost passes them to the API as `Billing__*`. Without them the app runs and paid features answer "Payments aren't configured". Never commit these keys.
 
@@ -102,8 +102,9 @@ Notification emails go to a **Mailpit** container (web UI linked from the Aspire
 - Personal records are derived (`PersonalRecords.History`), never stored: a session sets a record when it beats every earlier session for that key.
 - Logs are private to the member. The program editor's "Edit workout" keeps workout and exercise ids so logs and adherence stay linked.
 
-**Other projects:** `GymHub.MigrationService` migrates every module and then exits; the API `WaitForCompletion`s it. `EventBusRabbitMQ` is kept but unused.
+**Other projects:** `GymHub.MigrationService` migrates every module and then exits; the API `WaitForCompletion`s it.
 
 ## Repo tooling
 
+- CI is `.github/workflows/ci.yml`: .NET build and test (Release), Angular test and build, and a gitleaks secret scan. It is manual only for now (`workflow_dispatch`).
 - `.github/instructions/` (dotnet, angular, copilot) describes the conventions above in more depth, and `.github/references/` has review checklists.

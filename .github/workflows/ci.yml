@@ -1,0 +1,61 @@
+name: CI
+
+# Manual for now: run it from the Actions tab ("Run workflow").
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dotnet:
+    name: .NET build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build
+        run: dotnet build GymHub.slnx --configuration Release
+
+      # Functional tests start Postgres with Testcontainers; the runner has Docker.
+      - name: Test
+        run: dotnet test GymHub.slnx --configuration Release --no-build
+
+  angular:
+    name: Angular test and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/GH.WebApp/gh.webapp.ng
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/GH.WebApp/gh.webapp.ng/package-lock.json
+
+      - run: npm ci
+      - run: npm test -- --watch=false
+      - run: npm run build
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
