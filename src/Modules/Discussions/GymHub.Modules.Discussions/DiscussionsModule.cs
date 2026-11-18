@@ -48,6 +48,8 @@ public sealed class DiscussionsModule : IModule
         services.AddSingleton<IBoardNotifier, HubBoardNotifier>();
         services.AddSingleton<BoardConnections>();
         services.AddIntegrationEventHandler<EnrollmentCancelled, RevokeBoardAccessHandler>();
+        services.AddSingleton<BoardAccessRevocations>();
+        services.AddHostedService(sp => sp.GetRequiredService<BoardAccessRevocations>());
 
         services.AddScoped<ListThreadsHandler>();
         services.AddScoped<StartThreadHandler>();

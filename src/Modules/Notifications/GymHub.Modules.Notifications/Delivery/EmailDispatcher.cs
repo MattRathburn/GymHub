@@ -1,3 +1,4 @@
+using GymHub.BuildingBlocks.Jobs;
 using GymHub.Modules.Notifications.Data;
 using GymHub.Modules.Notifications.Domain;
 using MailKit.Net.Smtp;
@@ -48,8 +49,12 @@ internal sealed class SmtpEmailSender(IOptions<NotificationsOptions> options) : 
     }
 }
 
-/// <summary>Sends queued emails every few seconds, retrying failures with backoff until they give up.</summary>
-internal sealed class EmailDispatcher(IServiceScopeFactory scopes, IEmailSender sender, TimeProvider timeProvider, ILogger<EmailDispatcher> logger)
+/// <summary>
+/// Sends queued emails every few seconds, retrying failures with backoff until they give up. One instance at a time,
+/// so an email isn't sent twice.
+/// </summary>
+internal sealed class EmailDispatcher(
+    IServiceScopeFactory scopes, IEmailSender sender, ISingletonJobLock jobLock, TimeProvider timeProvider, ILogger<EmailDispatcher> logger)
     : BackgroundService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromSeconds(10);
@@ -69,7 +74,7 @@ internal sealed class EmailDispatcher(IServiceScopeFactory scopes, IEmailSender 
         {
             try
             {
-                await SendDueAsync(stoppingToken);
+                await jobLock.TryRunAsync("notifications-email", SendDueAsync, stoppingToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -113,7 +118,8 @@ internal sealed class EmailDispatcher(IServiceScopeFactory scopes, IEmailSender 
 }
 
 /// <summary>Daily: deletes old notifications and emails.</summary>
-internal sealed class NotificationCleanupJob(IServiceScopeFactory scopes, TimeProvider timeProvider, ILogger<NotificationCleanupJob> logger)
+internal sealed class NotificationCleanupJob(
+    IServiceScopeFactory scopes, ISingletonJobLock jobLock, TimeProvider timeProvider, ILogger<NotificationCleanupJob> logger)
     : BackgroundService
 {
     public static readonly TimeSpan ReadRetention = TimeSpan.FromDays(90);
@@ -128,7 +134,7 @@ internal sealed class NotificationCleanupJob(IServiceScopeFactory scopes, TimePr
         {
             try
             {
-                await CleanupAsync(stoppingToken);
+                await jobLock.TryRunAsync("notifications-cleanup", CleanupAsync, stoppingToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

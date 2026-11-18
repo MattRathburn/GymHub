@@ -4,6 +4,7 @@ using GymHub.Api;
 using GymHub.BuildingBlocks.Auth;
 using GymHub.BuildingBlocks.Modules;
 using GymHub.BuildingBlocks.Outbox;
+using GymHub.BuildingBlocks.ScaleOut;
 using GymHub.BuildingBlocks.Storage;
 using GymHub.Modules.Accounts;
 using GymHub.Modules.Billing;
@@ -42,6 +43,7 @@ builder.Services.AddGymHubAuthorization();
 builder.AddApiRateLimiting();
 
 builder.AddObjectStorage();
+builder.AddScaleOut();
 builder.Services.AddOutboxDispatcher();
 
 foreach (var module in modules)

@@ -21,6 +21,8 @@
 
   <ItemGroup>
     <PackageReference Include="Aspire.Keycloak.Authentication" />
+    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" />
     <PackageReference Include="Duende.AccessTokenManagement.OpenIdConnect" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />

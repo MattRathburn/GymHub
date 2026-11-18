@@ -1,3 +1,4 @@
+using GymHub.BuildingBlocks.Jobs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -26,13 +27,20 @@ public abstract class OrphanedUploadSweeper(IServiceScopeFactory scopeFactory, T
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        ISingletonJobLock jobLock;
+
+        using (var scope = scopeFactory.CreateScope())
+        {
+            jobLock = scope.ServiceProvider.GetRequiredService<ISingletonJobLock>();
+        }
+
         using var timer = new PeriodicTimer(Interval, timeProvider);
 
         do
         {
             try
             {
-                await SweepOnceAsync(stoppingToken);
+                await jobLock.TryRunAsync($"sweep-{GetType().Name}", SweepOnceAsync, stoppingToken);
             }
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
             {

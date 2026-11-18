@@ -1,4 +1,5 @@
 using GymHub.BuildingBlocks.Identity;
+using GymHub.BuildingBlocks.Jobs;
 using GymHub.Modules.Accounts.Data;
 using GymHub.Modules.Accounts.Features.Shared;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +14,8 @@ namespace GymHub.Modules.Accounts;
 /// they clear), erase every module's data, then delete the Keycloak user, so a failure part-way leaves a user who
 /// can still sign in and a row that is retried on the next run. Every step is idempotent.
 /// </summary>
-internal sealed class AccountDeletionJob(IServiceScopeFactory scopeFactory, TimeProvider timeProvider, ILogger<AccountDeletionJob> logger) : BackgroundService
+internal sealed class AccountDeletionJob(
+    IServiceScopeFactory scopeFactory, ISingletonJobLock jobLock, TimeProvider timeProvider, ILogger<AccountDeletionJob> logger) : BackgroundService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromHours(1);
 
@@ -25,7 +27,7 @@ internal sealed class AccountDeletionJob(IServiceScopeFactory scopeFactory, Time
         {
             try
             {
-                await RunOnceAsync(stoppingToken);
+                await jobLock.TryRunAsync("accounts-deletion", RunOnceAsync, stoppingToken);
             }
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
             {

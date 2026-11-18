@@ -28,7 +28,7 @@ using (var startupLogging = LoggerFactory.Create(logging => logging.AddSimpleCon
     disco = await discoService.loadDiscoveryDocument(config.Authority, startupLogging.CreateLogger("Gateway.Startup"));
 }
 
-builder.Services.AddDistributedMemoryCache();
+builder.AddSharedState();
 builder.AddGateway(config, disco);
 
 var app = builder.Build();

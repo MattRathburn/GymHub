@@ -1,9 +1,8 @@
 import { Injectable, signal } from '@angular/core';
-import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
+import { HubConnection, HubConnectionState } from '@microsoft/signalr';
 import { Observable, Subject, filter } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { getCookie } from '../../core/auth/get-cookie';
-import { xsrfCookieName, xsrfHeaderName } from '../../core/auth/secure-api.interceptor';
+import { HubTransport, buildHubConnection, startHub } from '../../core/realtime/hub-connection';
 
 /** Something changed in a thread (new post, edit, moderation…). Refetch it over REST to see what. */
 export interface ThreadChange {
@@ -17,8 +16,8 @@ type GroupKind = 'Board' | 'Thread';
 
 /**
  * Live updates from the Discussions hub, through the Gateway like every other API call (the Gateway adds the access
- * token; the browser only sends its session cookie and the XSRF header). One shared connection; groups are joined
- * while at least one subscriber watches them and re-joined after a reconnect.
+ * token; the browser only sends its session cookie). A WebSocket first, a negotiated transport if that's blocked.
+ * One shared connection; groups are joined while at least one subscriber watches them and re-joined after a reconnect.
  */
 @Injectable({ providedIn: 'root' })
 export class DiscussionsRealtimeService {
@@ -37,15 +36,8 @@ export class DiscussionsRealtimeService {
     return this.watch('Thread', threadId).pipe(filter((change) => change.threadId === threadId));
   }
 
-  protected createConnection(): HubConnection {
-    return new HubConnectionBuilder()
-      .withUrl(`${environment.apiBaseUrl}/discussions/hub`, {
-        withCredentials: true,
-        headers: { [xsrfHeaderName]: getCookie(xsrfCookieName) },
-      })
-      .withAutomaticReconnect()
-      .configureLogging(LogLevel.Warning)
-      .build();
+  protected createConnection(transport: HubTransport = 'websocket'): HubConnection {
+    return buildHubConnection(`${environment.apiBaseUrl}/discussions/hub`, transport);
   }
 
   private watch(kind: GroupKind, id: string): Observable<ThreadChange> {
@@ -91,9 +83,26 @@ export class DiscussionsRealtimeService {
       return this.started;
     }
 
-    const connection = this.createConnection();
-    this.connection = connection;
+    this.status.set('connecting');
+    this.started = startHub(
+      (transport) => this.createConnection(transport),
+      (connection) => this.wire(connection),
+    ).then(
+      (connection) => {
+        this.connection = connection;
+        this.status.set('live');
+      },
+      (error: unknown) => {
+        this.status.set('offline');
+        this.started = undefined;
+        throw error;
+      },
+    );
 
+    return this.started;
+  }
+
+  private wire(connection: HubConnection): void {
     connection.on('threadChanged', (programId: string, threadId: string) => this.changes.next({ programId, threadId }));
     connection.onreconnecting(() => this.status.set('connecting'));
     connection.onreconnected(() => {
@@ -104,20 +113,12 @@ export class DiscussionsRealtimeService {
       }
     });
     connection.onclose(() => {
-      this.status.set('offline');
-      this.started = undefined;
-    });
-
-    this.status.set('connecting');
-    this.started = connection.start().then(
-      () => this.status.set('live'),
-      (error: unknown) => {
+      // Only the connection in use matters (a direct attempt that failed to start may close too).
+      if (connection === this.connection) {
         this.status.set('offline');
         this.started = undefined;
-        throw error;
-      },
-    );
-
-    return this.started;
+        this.connection = undefined;
+      }
+    });
   }
 }
