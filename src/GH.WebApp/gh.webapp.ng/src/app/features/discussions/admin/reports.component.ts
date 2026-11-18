@@ -1,11 +1,12 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { Observable, firstValueFrom, switchMap } from 'rxjs';
 import { LoadState, toLoadState } from '../../../core/http/load-state';
 import { problemMessage } from '../../../core/http/problem';
 import { PagedResult } from '../../programs/program.model';
+import { AdminNavComponent } from '../../admin/admin-nav.component';
 import { ReviewReportsComponent } from '../../reviews/admin/review-reports.component';
 import { Report, ReportStatus, reportReasons } from '../discussion.model';
 import { DiscussionsService } from '../discussions.service';
@@ -16,7 +17,7 @@ import { DiscussionsService } from '../discussions.service';
  */
 @Component({
   selector: 'app-reports',
-  imports: [RouterLink, DatePipe, ReviewReportsComponent],
+  imports: [RouterLink, DatePipe, ReviewReportsComponent, AdminNavComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto max-w-4xl px-4 py-8">
@@ -28,6 +29,7 @@ import { DiscussionsService } from '../discussions.service';
           <option value="Dismissed">Dismissed</option>
         </select>
       </div>
+      <app-admin-nav class="mt-4 block" />
 
       <div class="mt-4 flex gap-1 border-b border-slate-200" role="tablist">
         @for (t of tabs; track t.value) {
@@ -110,7 +112,9 @@ export class ReportsComponent {
     { value: 'reviews', label: 'Reviews' },
   ] as const;
 
-  protected readonly tab = signal<'posts' | 'reviews'>('posts');
+  /** ?tab=reviews (the dashboard links there) opens the Reviews tab. */
+  readonly tabParam = input<string | undefined>(undefined, { alias: 'tab' });
+  protected readonly tab = linkedSignal<'posts' | 'reviews'>(() => (this.tabParam() === 'reviews' ? 'reviews' : 'posts'));
   protected readonly status = signal<ReportStatus>('Open');
   private readonly refresh = signal(0);
   protected readonly busy = signal(false);

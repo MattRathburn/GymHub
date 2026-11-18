@@ -1,3 +1,4 @@
+using GymHub.BuildingBlocks.Admin;
 using GymHub.BuildingBlocks.Modules;
 using GymHub.BuildingBlocks.Outbox;
 using GymHub.BuildingBlocks.Persistence;
@@ -32,6 +33,7 @@ public sealed class BillingModule : IModule
     {
         builder.AddModuleDbContext<BillingDbContext>(BillingDbContext.SchemaName);
         builder.Services.AddPersonalDataSource<BillingPersonalData>();
+        builder.Services.AddAdminMetrics<BillingMetrics>();
 
         var services = builder.Services;
         services.Configure<BillingOptions>(builder.Configuration.GetSection(BillingOptions.SectionName));

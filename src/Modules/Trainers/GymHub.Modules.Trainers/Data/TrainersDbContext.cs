@@ -14,6 +14,7 @@ public sealed class TrainersDbContext(DbContextOptions<TrainersDbContext> option
     public DbSet<TrainerProfile> Profiles => Set<TrainerProfile>();
     public DbSet<Follow> Follows => Set<Follow>();
     public DbSet<MemberProfile> MemberProfiles => Set<MemberProfile>();
+    public DbSet<TrainerRevocation> Revocations => Set<TrainerRevocation>();
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -81,6 +82,14 @@ public sealed class TrainersDbContext(DbContextOptions<TrainersDbContext> option
             follow.Property(f => f.TrainerId).HasMaxLength(100);
             follow.HasIndex(f => f.TrainerId);
             follow.HasOne<TrainerProfile>().WithMany().HasForeignKey(f => f.TrainerId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TrainerRevocation>(revocation =>
+        {
+            revocation.ToTable("revocations");
+            revocation.HasKey(r => r.UserId);
+            revocation.Property(r => r.UserId).HasMaxLength(100);
+            revocation.Property(r => r.RevokedBy).HasMaxLength(100);
         });
     }
 }

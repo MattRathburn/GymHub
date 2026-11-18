@@ -202,6 +202,25 @@ namespace GymHub.Modules.Trainers.Data.Migrations
                     b.ToTable("profiles", "trainers");
                 });
 
+            modelBuilder.Entity("GymHub.Modules.Trainers.Domain.TrainerRevocation", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RevokedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("revocations", "trainers");
+                });
+
             modelBuilder.Entity("GymHub.Modules.Trainers.Domain.Follow", b =>
                 {
                     b.HasOne("GymHub.Modules.Trainers.Domain.TrainerProfile", null)

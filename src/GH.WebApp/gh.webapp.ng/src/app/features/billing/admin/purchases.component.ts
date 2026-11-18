@@ -6,6 +6,7 @@ import { problemMessage } from '../../../core/http/problem';
 import { PagedResult } from '../../programs/program.model';
 import { Purchase, PurchaseStatus } from '../billing.model';
 import { BillingService } from '../billing.service';
+import { AdminNavComponent } from '../../admin/admin-nav.component';
 import { PurchasesTableComponent } from '../purchases-table.component';
 
 const pageSize = 25;
@@ -13,7 +14,7 @@ const pageSize = 25;
 /** Admin: every purchase, filtered by status, with refunds at any time. */
 @Component({
   selector: 'app-admin-purchases',
-  imports: [PurchasesTableComponent],
+  imports: [PurchasesTableComponent, AdminNavComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto max-w-6xl px-4 py-8">
@@ -26,7 +27,8 @@ const pageSize = 25;
           }
         </select>
       </div>
-      <p class="mt-1 text-sm text-slate-500">Disputes are answered in the Stripe dashboard. A disputed purchase has already lost access.</p>
+      <app-admin-nav class="mt-4 block" />
+      <p class="mt-3 text-sm text-slate-500">Disputes are answered in the Stripe dashboard. A disputed purchase has already lost access.</p>
 
       @if (error(); as message) {
         <p class="mt-3 text-sm text-rose-600">{{ message }}</p>

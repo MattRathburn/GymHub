@@ -1,4 +1,4 @@
-export type ApplicationStatus = 'Pending' | 'Approved' | 'Rejected';
+export type ApplicationStatus = 'Pending' | 'Approved' | 'Rejected' | 'Revoked';
 
 /** Body of an application and of a profile edit. */
 export interface TrainerDetailsRequest {

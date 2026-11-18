@@ -1,4 +1,4 @@
-using GymHub.BuildingBlocks.Privacy;
+using GymHub.BuildingBlocks.Auth;
 using GymHub.Modules.Notifications.Data;
 using GymHub.Modules.Notifications.Domain;
 using Microsoft.EntityFrameworkCore;

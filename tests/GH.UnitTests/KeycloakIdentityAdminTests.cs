@@ -25,8 +25,18 @@ public class KeycloakIdentityAdminTests
             {
                 "/realms/GH-Test-Realm/protocol/openid-connect/token" => Json("""{"access_token":"tok","expires_in":60}"""),
                 "/admin/realms/GH-Test-Realm/roles/trainer" => Json("""{"id":"role-id","name":"trainer","composite":false}"""),
+                "/admin/realms/GH-Test-Realm/users/user-1/role-mappings/realm/composite" =>
+                    Json("""[{"id":"r1","name":"trainer"},{"id":"r2","name":"admin"}]"""),
+                "/admin/realms/GH-Test-Realm/users/user-1/role-mappings/realm" when request.Method == HttpMethod.Get =>
+                    Json("""[{"id":"r1","name":"trainer"}]"""),
                 "/admin/realms/GH-Test-Realm/users/user-1/role-mappings/realm" => new HttpResponseMessage(GrantStatus),
                 "/admin/realms/GH-Test-Realm/users/user-1" when request.Method == HttpMethod.Delete => new HttpResponseMessage(DeleteStatus),
+                "/admin/realms/GH-Test-Realm/users/user-1" when request.Method == HttpMethod.Get =>
+                    Json("""{"id":"user-1","username":"alex","firstName":"Alex","enabled":true,"attributes":{"x":["y"]}}"""),
+                "/admin/realms/GH-Test-Realm/users/user-1" when request.Method == HttpMethod.Put => new HttpResponseMessage(HttpStatusCode.NoContent),
+                "/admin/realms/GH-Test-Realm/users/user-1/logout" => new HttpResponseMessage(HttpStatusCode.NoContent),
+                "/admin/realms/GH-Test-Realm/users" =>
+                    Json("""[{"id":"user-1","username":"alex","email":"alex@example.test","enabled":false,"emailVerified":true,"createdTimestamp":1767225600000}]"""),
                 _ => new HttpResponseMessage(HttpStatusCode.NotFound)
             };
         }
@@ -93,5 +103,70 @@ public class KeycloakIdentityAdminTests
 
         await Assert.ThrowsAsync<HttpRequestException>(() =>
             Create(stub).DeleteUserAsync("user-1", TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task Disabling_keeps_the_rest_of_the_user_and_ends_their_sessions()
+    {
+        var stub = new StubKeycloak();
+
+        Assert.True(await Create(stub).SetEnabledAsync("user-1", false, TestContext.Current.CancellationToken));
+
+        var put = stub.Requests.Single(r => r.Method == HttpMethod.Put);
+        Assert.Contains("\"enabled\":false", put.Body);
+        Assert.Contains("\"firstName\":\"Alex\"", put.Body);
+        Assert.Contains("\"attributes\"", put.Body);
+        Assert.Equal("/admin/realms/GH-Test-Realm/users/user-1/logout", stub.Requests[^1].Path);
+    }
+
+    [Fact]
+    public async Task Enabling_leaves_sessions_alone_and_a_missing_user_returns_false()
+    {
+        var stub = new StubKeycloak();
+
+        Assert.True(await Create(stub).SetEnabledAsync("user-1", true, TestContext.Current.CancellationToken));
+        Assert.DoesNotContain(stub.Requests, r => r.Path.EndsWith("/logout", StringComparison.Ordinal));
+        Assert.False(await Create(stub).SetEnabledAsync("someone-else", false, TestContext.Current.CancellationToken));
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.NoContent)]
+    [InlineData(HttpStatusCode.NotFound)]
+    public async Task Removing_a_role_sends_the_role_and_ignores_missing_users(HttpStatusCode status)
+    {
+        var stub = new StubKeycloak { GrantStatus = status };
+
+        await Create(stub).RemoveRealmRoleAsync("user-1", "trainer", TestContext.Current.CancellationToken);
+
+        var remove = stub.Requests[^1];
+        Assert.Equal(HttpMethod.Delete, remove.Method);
+        Assert.Contains("\"name\":\"trainer\"", remove.Body);
+    }
+
+    [Fact]
+    public async Task Search_maps_the_users_Keycloak_returns()
+    {
+        var stub = new StubKeycloak();
+
+        var users = await Create(stub).SearchUsersAsync("a&b", 20, 10, TestContext.Current.CancellationToken);
+
+        var user = Assert.Single(users);
+        Assert.Equal(("user-1", "alex", false, true), (user.Id, user.Username, user.Enabled, user.EmailVerified));
+        Assert.Equal(new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), user.CreatedAt);
+    }
+
+    [Fact]
+    public async Task Reads_effective_or_direct_realm_roles_with_one_token_and_none_for_unknown_users()
+    {
+        var stub = new StubKeycloak();
+        var admin = Create(stub);
+
+        var effective = await admin.GetRealmRolesAsync(["user-1", "ghost"], effective: true, TestContext.Current.CancellationToken);
+        var direct = await admin.GetRealmRolesAsync(["user-1"], effective: false, TestContext.Current.CancellationToken);
+
+        Assert.Equal(new HashSet<string> { "trainer", "admin" }, effective["user-1"]);
+        Assert.Empty(effective["ghost"]);
+        Assert.Equal(new HashSet<string> { "trainer" }, direct["user-1"]);
+        Assert.Equal(2, stub.Requests.Count(r => r.Path.EndsWith("/token", StringComparison.Ordinal)));
     }
 }

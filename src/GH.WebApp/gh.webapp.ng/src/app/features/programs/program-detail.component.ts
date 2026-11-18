@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Observable, catchError, firstValueFrom, of, switchMap } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { LoadState, toLoadState } from '../../core/http/load-state';
@@ -29,6 +29,7 @@ export class ProgramDetailComponent {
   private readonly billing = inject(BillingService);
   private readonly training = inject(TrainingService);
   protected readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
 
   /** Route parameter, bound by withComponentInputBinding. */
   readonly id = input.required<string>();
@@ -163,6 +164,23 @@ export class ProgramDetailComponent {
 
   protected async leave(): Promise<void> {
     await this.run(() => this.subscriptions.leave(this.id()));
+  }
+
+  /** Admin moderation. The page only shows published programs, so afterwards it's the admin program list. */
+  protected async archive(title: string): Promise<void> {
+    if (!confirm(`Archive "${title}"? It leaves the catalog and renewals stop. Buyers keep access. This can't be undone.`)) {
+      return;
+    }
+
+    this.busy.set(true);
+    this.actionError.set(null);
+    try {
+      await firstValueFrom(this.programsService.archive(this.id()));
+      await this.router.navigateByUrl('/admin/programs');
+    } catch (error) {
+      this.actionError.set(problemMessage(error));
+      this.busy.set(false);
+    }
   }
 
   private async redirect(request: Observable<Redirect>): Promise<void> {

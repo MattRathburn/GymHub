@@ -1,10 +1,12 @@
 using FluentValidation;
+using GymHub.BuildingBlocks.Admin;
 using GymHub.BuildingBlocks.Modules;
 using GymHub.BuildingBlocks.Outbox;
 using GymHub.BuildingBlocks.Persistence;
 using GymHub.BuildingBlocks.Privacy;
 using GymHub.Modules.Programs.Contracts;
 using GymHub.Modules.Programs.Data;
+using GymHub.Modules.Programs.Features.AdminPrograms;
 using GymHub.Modules.Programs.Features.ArchiveProgram;
 using GymHub.Modules.Programs.Features.BrowsePrograms;
 using GymHub.Modules.Programs.Features.CreateProgram;
@@ -20,6 +22,7 @@ using GymHub.Modules.Programs.Features.SetProgramPricing;
 using GymHub.Modules.Programs.Features.Shared;
 using GymHub.Modules.Programs.Features.UpdateProgramDetails;
 using GymHub.Modules.Reviews.Contracts;
+using GymHub.Modules.Trainers.Contracts;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -35,6 +38,7 @@ public sealed class ProgramsModule : IModule
     {
         builder.AddModuleDbContext<ProgramsDbContext>(ProgramsDbContext.SchemaName);
         builder.Services.AddPersonalDataSource<ProgramsPersonalData>();
+        builder.Services.AddAdminMetrics<ProgramsMetrics>();
 
         var services = builder.Services;
         services.AddValidatorsFromAssemblyContaining<ProgramsModule>(includeInternalTypes: true);
@@ -44,6 +48,7 @@ public sealed class ProgramsModule : IModule
         services.AddSingleton<WeekReleaseJob>();
         services.AddHostedService(sp => sp.GetRequiredService<WeekReleaseJob>());
         services.AddIntegrationEventHandler<ProgramRatingChanged, ProgramRatingHandler>();
+        services.AddIntegrationEventHandler<TrainerRevoked, RevokedTrainerHandler>();
 
         services.AddScoped<CreateProgramHandler>();
         services.AddScoped<UpdateProgramDetailsHandler>();
@@ -58,6 +63,7 @@ public sealed class ProgramsModule : IModule
         services.AddScoped<BrowseProgramsHandler>();
         services.AddScoped<GetProgramOverviewHandler>();
         services.AddScoped<GetProgramContentHandler>();
+        services.AddScoped<AdminProgramsHandler>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
@@ -76,5 +82,6 @@ public sealed class ProgramsModule : IModule
         ManageMediaEndpoint.Map(endpoints);
         PublishProgramEndpoint.Map(endpoints);
         ArchiveProgramEndpoint.Map(endpoints);
+        AdminProgramsEndpoint.Map(endpoints);
     }
 }

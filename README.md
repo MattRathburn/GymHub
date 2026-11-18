@@ -21,6 +21,7 @@ Welcome to the **Gym Hub**! Trainers build workout programs and grow a following
 - Notifications: an in-app inbox with a live unread count, emails, and per-type settings
 - Reviews: members with access rate programs 1 to 5 stars, the trainer replies, admins hide reported reviews, and ratings show in the catalog
 - Accounts: sign-up with email verification, a data export, and account deletion after a 7-day grace period; terms and privacy pages
+- Admin: a dashboard of site numbers, user search with suspension and trainer-role revocation, and a list of every program to archive from
 
 ## Technologies
 - **.NET 10** with ASP.NET Core Minimal APIs
@@ -83,14 +84,16 @@ The functional tests need Docker. For the Angular tests, run `npm test` in `src/
 CI (`.github/workflows/ci.yml`) runs the .NET build and tests, the Angular tests and build, and a gitleaks secret scan. For now it only runs manually: **Actions → CI → Run workflow**.
 
 ## Usage
-Sign in as `trainer`, open **Trainer studio**, create a program, then add weeks, days and workouts and publish it. Sign in as `member` to find the program (the front page links to the catalog at **Programs** and the directory at **Trainers**), subscribe, and see the weeks released so far. Subscribers, the trainer and admins open the program's **Discussion board** to ask questions and reply; `admin` reviews reported posts under **Reports**.
+Sign in as `trainer`, open **Trainer studio**, create a program, then add weeks, days and workouts and publish it. Sign in as `member` to find the program (the front page links to the catalog at **Programs** and the directory at **Trainers**), subscribe, and see the weeks released so far. Subscribers, the trainer and admins open the program's **Discussion board** to ask questions and reply; `admin` reviews reported posts under **Admin → Reports**.
 
-To sell a program, the trainer opens **Payouts** and finishes Stripe's onboarding, then gives the program a one-time or subscription price before publishing. Members buy with Stripe's test card `4242 4242 4242 4242`, manage subscriptions under **My programs → Manage billing**, and trainers refund sales from **Payouts**. Admins see every purchase under **Purchases**.
+To sell a program, the trainer opens **Payouts** and finishes Stripe's onboarding, then gives the program a one-time or subscription price before publishing. Members buy with Stripe's test card `4242 4242 4242 4242`, manage subscriptions under **My programs → Manage billing**, and trainers refund sales from **Payouts**. Admins see every purchase under **Admin → Purchases**.
 
 The bell in the nav shows notifications live: new weeks, replies, new threads for the trainer, programs from followed trainers, and billing changes. Choose in-app and email per type under **Notifications → Settings**. Locally, emails land in Mailpit, linked from the Aspire dashboard.
 
 Members log workouts under **Training log**, or with **Log workout** next to a released workout on a program page (pre-filled with the planned sets). Each exercise gets a progress chart and a list of personal records, and the program page shows how many released workouts you've logged.
 
-Members with access review a program at the bottom of its page; the rating shows on catalog cards and the program page. The trainer replies under each review, anyone signed in can report one, and admins hide reported reviews from the **Reviews** tab under **Reports**.
+Members with access review a program at the bottom of its page; the rating shows on catalog cards and the program page. The trainer replies under each review, anyone signed in can report one, and admins hide reported reviews from the **Reviews** tab under **Admin → Reports**.
 
 Anyone can create an account with **Sign up**; Keycloak sends the verification email to Mailpit. Under **Account** (in the footer, or from your profile) members download their data or delete their account. Deletion waits 7 days, and a banner offers **Keep my account** until then.
+
+Sign in as `admin` and open **Admin** for the dashboard. Its tabs lead to **Users** (suspend or reactivate a user, revoke the trainer role, which archives their published programs), **Programs** (every program; archive any of them, also from the program page), trainer applications, reports and purchases.

@@ -81,6 +81,29 @@ namespace GymHub.Modules.Accounts.Data.Migrations
 
                     b.ToTable("account_deletions", "accounts");
                 });
+
+            modelBuilder.Entity("GymHub.Modules.Accounts.Domain.AccountSuspension", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("SuspendedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SuspendedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("account_suspensions", "accounts");
+                });
 #pragma warning restore 612, 618
         }
     }

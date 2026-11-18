@@ -230,23 +230,92 @@ public sealed class FakeObjectStorage : IObjectStorage
 }
 
 /// <summary>Records role grants and user deletions instead of calling Keycloak.</summary>
+/// <summary>An in-memory Keycloak: users added with <see cref="AddUser"/>, realm roles, enabled flags.</summary>
 internal sealed class FakeIdentityAdmin : IIdentityAdmin
 {
+    private readonly ConcurrentDictionary<string, IdentityUser> _users = new();
+    private readonly ConcurrentDictionary<(string UserId, string Role), bool> _roles = new();
+
     public ConcurrentBag<(string UserId, string Role)> Grants { get; } = [];
 
     public ConcurrentBag<string> DeletedUsers { get; } = [];
 
+    public IdentityUser AddUser(string userId, string username, params string[] roles)
+    {
+        var user = new IdentityUser(userId, username, $"{username}@example.test", null, null, true, true, DateTime.UtcNow);
+        _users[userId] = user;
+
+        foreach (var role in roles)
+        {
+            _roles[(userId, role)] = true;
+        }
+
+        return user;
+    }
+
+    public bool IsEnabled(string userId) => _users.TryGetValue(userId, out var user) && user.Enabled;
+
+    public bool HasRole(string userId, string role) => _roles.ContainsKey((userId, role));
+
+    private readonly ConcurrentDictionary<(string UserId, string Role), bool> _inherited = new();
+
+    /// <summary>A role the user gets from a group or composite role, as Keycloak would: effective, not direct.</summary>
+    public void AddInheritedRole(string userId, string role) => _inherited[(userId, role)] = true;
+
+    public Task<IReadOnlyDictionary<string, IReadOnlySet<string>>> GetRealmRolesAsync(
+        IReadOnlyCollection<string> userIds, bool effective, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyDictionary<string, IReadOnlySet<string>>>(userIds.Distinct().ToDictionary(
+            id => id,
+            IReadOnlySet<string> (id) => _roles.Keys.Where(k => k.UserId == id)
+                .Concat(effective ? _inherited.Keys.Where(k => k.UserId == id) : [])
+                .Select(k => k.Role)
+                .ToHashSet()));
+
+    public Task<IReadOnlyList<IdentityUser>> SearchUsersAsync(string? search, int first, int max, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<IdentityUser>>([.. Matching(search).Skip(first).Take(max)]);
+
+    public Task<int> CountUsersAsync(string? search, CancellationToken cancellationToken) => Task.FromResult(Matching(search).Count());
+
+    public Task<IReadOnlySet<string>> GetRoleMemberIdsAsync(string role, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlySet<string>>(_roles.Keys.Where(k => k.Role == role).Select(k => k.UserId).ToHashSet());
+
+    public Task<bool> SetEnabledAsync(string userId, bool enabled, CancellationToken cancellationToken)
+    {
+        if (!_users.TryGetValue(userId, out var user))
+        {
+            return Task.FromResult(false);
+        }
+
+        _users[userId] = user with { Enabled = enabled };
+        return Task.FromResult(true);
+    }
+
     public Task DeleteUserAsync(string userId, CancellationToken cancellationToken)
     {
         DeletedUsers.Add(userId);
+        _users.TryRemove(userId, out _);
         return Task.CompletedTask;
     }
 
     public Task GrantRealmRoleAsync(string userId, string role, CancellationToken cancellationToken)
     {
         Grants.Add((userId, role));
+        _roles[(userId, role)] = true;
         return Task.CompletedTask;
     }
+
+    public Task RemoveRealmRoleAsync(string userId, string role, CancellationToken cancellationToken)
+    {
+        _roles.TryRemove((userId, role), out _);
+        return Task.CompletedTask;
+    }
+
+    private IEnumerable<IdentityUser> Matching(string? search) =>
+        _users.Values
+            .Where(u => string.IsNullOrWhiteSpace(search)
+                || u.Username.Contains(search, StringComparison.OrdinalIgnoreCase)
+                || (u.Email?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false))
+            .OrderBy(u => u.Username, StringComparer.Ordinal);
 }
 
 public sealed class RecordingHandler<TEvent>

@@ -1,4 +1,4 @@
-using GymHub.BuildingBlocks.Privacy;
+using GymHub.BuildingBlocks.Auth;
 using GymHub.Modules.Accounts.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
