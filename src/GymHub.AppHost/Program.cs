@@ -2,8 +2,6 @@ using GymHub.AppHost;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddForwardedHeaders();
-
 // Shared by Keycloak's realm import (Realms/gh-test-realm.json) and the Gateway. Set it in this project's user-secrets.
 var bffClientSecret = builder.AddParameter("bff-client-secret", secret: true);
 
@@ -63,18 +61,30 @@ var api = builder.AddProject<Projects.GymHub_Api>("gymhub-api")
     .WaitFor(mediaStore)
     .WaitForCompletion(migrations);
 
-var webApp = builder.AddNpmApp("gh-webapp-ng", "../GH.WebApp/gh.webapp.ng")
-    .WithHttpEndpoint(env: "PORT")
-    .PublishAsDockerFile();
-
 var gateway = builder.AddProject<Projects.Gateway>("gateway")
     .WithReference(api)
     .WithReference(keycloak)
-    .WithReference(webApp)
     .WithEnvironment("OpenIdConnect__ClientSecret", bffClientSecret)
+    // The CSP lets the browser load and upload media from storage (presigned URLs).
+    .WithEnvironment("Gateway__Csp__MediaOrigins__0", mediaStore.GetEndpoint("s3"))
     .WaitFor(api)
     .WaitFor(keycloak)
     .WithExternalHttpEndpoints();
+
+// Locally the Gateway proxies to the Angular dev server. A published Gateway carries the built app itself
+// (dotnet publish runs the Angular build), so there is no web app resource to deploy.
+if (builder.ExecutionContext.IsRunMode)
+{
+    var webApp = builder.AddNpmApp("gh-webapp-ng", "../GH.WebApp/gh.webapp.ng")
+        .WithHttpEndpoint(env: "PORT");
+
+    // The catch-all YARP route to the dev server (lowest priority, after the API and Gateway endpoints).
+    gateway.WithReference(webApp)
+        .WithEnvironment("ReverseProxy__Routes__spa__ClusterId", "gh-webapp-ng")
+        .WithEnvironment("ReverseProxy__Routes__spa__Order", "1000")
+        .WithEnvironment("ReverseProxy__Routes__spa__Match__Path", "{**catch-all}")
+        .WithEnvironment("ReverseProxy__Clusters__gh-webapp-ng__Destinations__gh-webapp-ng__Address", "http://gh-webapp-ng");
+}
 
 // Stripe (Billing). Optional: without stripe-secret-key in user-secrets the app runs and paid features report that
 // payments aren't configured. stripe-webhook-secret is the whsec_ value printed by `stripe listen`; without it,

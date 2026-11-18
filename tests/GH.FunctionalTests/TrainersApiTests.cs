@@ -160,7 +160,7 @@ public class TrainersApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var saved = await trainer.PutAsJsonAsync("/api/v1/trainers/me/profile", ApplicationBody("Taylor"), Json, Ct);
         Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
 
-        var upload = await (await trainer.PostAsJsonAsync("/api/v1/trainers/me/avatar/uploads", new { fileName = "me.png", contentType = "image/png" }, Json, Ct))
+        var upload = await (await trainer.PostAsJsonAsync("/api/v1/trainers/me/avatar/uploads", new { fileName = "me.png", contentType = "image/png", size = 1024L }, Json, Ct))
             .Content.ReadFromJsonAsync<Upload>(Json, Ct);
         Assert.StartsWith($"trainers/{trainerId}/avatar/", upload!.ObjectKey);
 
@@ -195,7 +195,7 @@ public class TrainersApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var saved = await member.PutAsJsonAsync("/api/v1/trainers/me/member-profile", new { displayName = "  Lou  " }, Json, Ct);
         Assert.Equal("Lou", (await saved.Content.ReadFromJsonAsync<MemberProfile>(Json, Ct))!.DisplayName);
 
-        var upload = await (await member.PostAsJsonAsync("/api/v1/trainers/me/member-profile/avatar/uploads", new { fileName = "me.png", contentType = "image/png" }, Json, Ct))
+        var upload = await (await member.PostAsJsonAsync("/api/v1/trainers/me/member-profile/avatar/uploads", new { fileName = "me.png", contentType = "image/png", size = 1024L }, Json, Ct))
             .Content.ReadFromJsonAsync<Upload>(Json, Ct);
         Assert.StartsWith($"members/{userId}/avatar/", upload!.ObjectKey);
 

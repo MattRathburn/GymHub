@@ -108,6 +108,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("services:keycloak:http:0", "http://localhost:1");
         builder.UseSetting("Billing:StripeWebhookSecret", WebhookSecret);
         builder.UseSetting("Billing:PublicBaseUrl", "https://gymhub.test/");
+        // Test clients share one (missing) IP and make many calls; RateLimitingApiTests lowers these on purpose.
+        builder.UseSetting("RateLimiting:PermitsPerMinute", "100000");
+        builder.UseSetting("RateLimiting:AnonymousPermitsPerMinute", "100000");
 
         builder.ConfigureTestServices(services =>
         {
@@ -205,18 +208,26 @@ public sealed class TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions>
 
 public sealed class FakeObjectStorage : IObjectStorage
 {
-    public ConcurrentDictionary<string, string> Objects { get; } = new();
+    public ConcurrentDictionary<string, StoredObject> Objects { get; } = new();
 
-    public PresignedUpload CreateUpload(string objectKey, string contentType, TimeSpan lifetime)
+    public PresignedUpload CreateUpload(string objectKey, string contentType, long size, TimeSpan lifetime)
     {
-        // Pretend the client uploads immediately.
-        Objects[objectKey] = contentType;
+        // Pretend the client uploads a file of the presigned type and size immediately; tests replace it to upload
+        // something else.
+        Objects[objectKey] = new StoredObject(size, contentType);
         return new PresignedUpload(objectKey, new Uri($"http://storage.test/{objectKey}?upload"), DateTimeOffset.UtcNow.Add(lifetime));
     }
 
     public Uri CreateDownloadUrl(string objectKey, TimeSpan lifetime) => new($"http://storage.test/{objectKey}");
 
-    public Task<bool> ExistsAsync(string objectKey, CancellationToken cancellationToken) => Task.FromResult(Objects.ContainsKey(objectKey));
+    public Task<StoredObject?> GetInfoAsync(string objectKey, CancellationToken cancellationToken) =>
+        Task.FromResult(Objects.TryGetValue(objectKey, out var stored) ? stored : null);
+
+    public Task DeleteAsync(string objectKey, CancellationToken cancellationToken)
+    {
+        Objects.TryRemove(objectKey, out _);
+        return Task.CompletedTask;
+    }
 
     public Task DeletePrefixAsync(string prefix, CancellationToken cancellationToken)
     {
@@ -226,6 +237,19 @@ public sealed class FakeObjectStorage : IObjectStorage
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>When each object was last written; objects not listed here count as written just now.</summary>
+    public ConcurrentDictionary<string, DateTime> LastModified { get; } = new();
+
+    public async IAsyncEnumerable<ListedObject> ListAsync(string prefix, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        await Task.Yield();
+
+        foreach (var key in Objects.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).ToList())
+        {
+            yield return new ListedObject(key, LastModified.GetValueOrDefault(key, DateTime.UtcNow));
+        }
     }
 }
 

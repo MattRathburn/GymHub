@@ -17,6 +17,7 @@ Run from the repo root. The solution file is `GymHub.slnx`.
 ```bash
 dotnet build GymHub.slnx
 dotnet test GymHub.slnx                                    # functional tests need Docker (Testcontainers)
+dotnet test tests/GH.GatewayTests                          # Gateway only: no Docker; a stub OpenID provider stands in for Keycloak
 dotnet test tests/GH.UnitTests --filter "FullyQualifiedName~TrainingProgramTests"
 dotnet run --project src/GymHub.AppHost                    # whole system; open the Gateway at https://localhost:7179
 ```
@@ -46,9 +47,11 @@ Notification emails go to a **Mailpit** container (web UI linked from the Aspire
 ## Architecture
 
 **Request flow:** Browser → `Gateway` (same origin) → `GymHub.Api`.
-- The Gateway serves the SPA (catch-all YARP route to the Angular dev server) and does OIDC code + PKCE login with Keycloak. It keeps tokens in server-side session; the browser holds only a cookie.
+- The Gateway serves the SPA and does OIDC code + PKCE login with Keycloak. It keeps tokens in server-side session; the browser holds only a cookie.
+- SPA: `dotnet publish` of the Gateway runs `npm ci` and the Angular build and ships `dist/.../browser` as `wwwroot` (`PublishSpa` target; `-p:SkipSpaBuild=true` reuses an existing build). With a `wwwroot/index.html` the Gateway serves static files and falls back to `index.html` with a per-request CSP nonce filled into Angular's `**PLACEHOLDER_NONCE_SERVER**` (`SpaHosting`). Locally the AppHost (run mode only) adds the npm app and a catch-all YARP `spa` route to it through environment variables.
 - `/gh-api/**` is proxied to `gymhub-api` with the prefix stripped. `GatewayService.AddToken` attaches the bearer token, and `XsrfMiddleware` requires `X-XSRF-TOKEN` (echoed from the `XSRF-TOKEN` cookie). Both match on `Apis[].ApiPath` in `Gateway/appsettings.json`, which must equal the route prefix.
-- Gateway endpoints: `/login`, `/signup` (OIDC `prompt=create`, sent without PAR because Keycloak ignores a pushed prompt), `/logout`, `/api/user` (the SPA's source of identity and roles).
+- Gateway endpoints: `/login`, `/signup` (OIDC `prompt=create`, sent without PAR because Keycloak ignores a pushed prompt), `/logout`, `/api/user` (the SPA's source of identity and roles). The first three are rate-limited per IP (`RateLimiting:AuthPermitsPerMinute`, 20).
+- `SecurityHeaders` adds a nonce-based CSP (no `'unsafe-inline'`; media origins from `Gateway:Csp:MediaOrigins`, report-only in Development), HSTS outside Development, nosniff, `X-Frame-Options: DENY`, `Referrer-Policy` and `Permissions-Policy`. Auth, session and XSRF cookies are `Secure`. `HostRules` answers only `Gateway:AllowedHosts` (default `localhost`; production sets its domain), except `/health` and `/alive`, which platform probes send to the container IP (ASP.NET's own `AllowedHosts` stays `*`). Outside Development the OIDC authority must be https (checked at startup), and the Gateway retries Keycloak discovery for about two minutes.
 - Keycloak is pinned to `KC_HOSTNAME=http://localhost:8080`, so the issuer matches for the Gateway (direct) and the API (service discovery).
 
 **Module host:** `GymHub.Api/Program.cs` keeps an explicit `IModule[]` list. Each module registers services and maps endpoints under `/api/v1/{module.Name}`. The JWT bearer uses audience `gymhub-api`, `RoleClaimType = "roles"`, and policies `Policies.Trainer` / `Policies.Admin`.
@@ -63,7 +66,8 @@ Notification emails go to a **Mailpit** container (web UI linked from the Aspire
 - **Validation:** `.WithValidation<T>()` runs FluentValidation.
 - **Users:** `CurrentUser.Required(principal)` gives the Keycloak `sub`.
 - **Outbox:** aggregates raise `IntegrationEvent`s, and the module DbContext writes them to its outbox in the same `SaveChanges`. `OutboxDispatcher` delivers them in-process to handlers registered with `AddIntegrationEventHandler<TEvent, THandler>()`, reusing `EventBus`'s keyed-handler scheme. Delivery is at-least-once, so handlers must be idempotent.
-- **Storage:** `IObjectStorage` hands out presigned S3 URLs. Browsers upload and download directly, and RustFS CORS allows the Gateway origin.
+- **Storage:** `IObjectStorage` hands out presigned S3 URLs. Browsers upload and download directly, and RustFS CORS allows the Gateway origin. `UploadRules` is the allowlist (JPEG/PNG/WebP/GIF up to 10 MB, MP4/WebM up to 500 MB; no SVG); object keys take their extension from the type, and upload keys are always `UploadRules.NewKey` (prefix + id + type's extension) and attach accepts only that exact shape (`IsIssuedKey`); upload requests declare the file's size, which the presigned PUT signs (`Content-Length`), so storage refuses any other length. `CheckUploadAsync` checks the stored object's real type and size before anything is attached and deletes a failing new upload (never one that's already attached: `inUse`). `OrphanedUploadSweeper` subclasses (`ProgramMediaSweeper`, `AvatarSweeper`) delete objects nothing references after a day.
+- **Hardening (API):** the realm comes from `Keycloak:Realm`; `RequireHttpsMetadata` is on outside Development. `ApiRateLimiting` gives each signed-in user (`RateLimiting:PermitsPerMinute`, 300) or anonymous IP (`AnonymousPermitsPerMinute`, 120) a per-minute window, with 429 problems; the Stripe webhook and health endpoints opt out. Forwarded headers are trusted only from loopback and `ForwardedHeaders:KnownNetworks`/`KnownProxies` (ServiceDefaults); outside Development one of those (or `ForwardedHeaders:NoProxy`) is required at startup, or every client would share the proxy's IP and rate limits. `/health` and `/alive` are mapped everywhere (checks: Postgres, Keycloak, object storage) but answer only direct calls: anything that came through a proxy (the Gateway's `/gh-api/health`) gets 404; OpenAPI and Scalar only in Development.
 
 **Programs module:**
 - Model: `TrainingProgram` aggregate → weeks → days → workouts → exercises, with sets stored as JSON.

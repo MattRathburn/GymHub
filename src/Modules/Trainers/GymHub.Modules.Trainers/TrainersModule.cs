@@ -44,6 +44,8 @@ public sealed class TrainersModule : IModule
         services.AddScoped<IProfileDirectory>(sp => sp.GetRequiredService<ProfileDirectory>());
         services.AddScoped<ITrainerDirectory>(sp => sp.GetRequiredService<ProfileDirectory>());
         services.AddScoped<IFollowers, Followers>();
+        services.AddSingleton<AvatarSweeper>();
+        services.AddHostedService(sp => sp.GetRequiredService<AvatarSweeper>());
 
         services.AddScoped<SubmitApplicationHandler>();
         services.AddScoped<ReviewApplicationsHandler>();

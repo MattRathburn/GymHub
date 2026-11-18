@@ -112,7 +112,7 @@
           @if (p.coverUrl) {
             <img [src]="p.coverUrl" alt="" class="h-32 w-full rounded object-cover" />
           }
-          <input type="file" accept="image/*" class="text-sm" [disabled]="busy() || isArchived()" (change)="uploadCover($event)" />
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="text-sm" [disabled]="busy() || isArchived()" (change)="uploadCover($event)" />
         </div>
       </div>
     </div>

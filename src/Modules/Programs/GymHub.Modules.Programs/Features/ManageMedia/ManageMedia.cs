@@ -13,7 +13,8 @@ using Microsoft.AspNetCore.Routing;
 
 namespace GymHub.Modules.Programs.Features.ManageMedia;
 
-public sealed record RequestMediaUploadRequest(string FileName, string ContentType);
+/// <summary><paramref name="Size"/> is the file's size in bytes; the upload URL only accepts exactly that many.</summary>
+public sealed record RequestMediaUploadRequest(string FileName, string ContentType, long Size);
 
 public sealed record AttachMediaRequest(MediaTarget Target, Guid? TargetId, string ObjectKey, string ContentType, string? Caption);
 
@@ -25,8 +26,11 @@ internal sealed class RequestMediaUploadValidator : AbstractValidator<RequestMed
     {
         RuleFor(r => r.FileName).NotEmpty().MaximumLength(200);
         RuleFor(r => r.ContentType).NotEmpty().MaximumLength(100)
-            .Must(t => t.StartsWith("image/", StringComparison.OrdinalIgnoreCase) || t.StartsWith("video/", StringComparison.OrdinalIgnoreCase))
-            .WithMessage("Only image and video uploads are supported.");
+            .Must(UploadRules.IsAllowedMedia)
+            .WithMessage($"Upload {UploadRules.MediaTypesText}.");
+        RuleFor(r => r.Size)
+            .Must((r, size) => UploadRules.IsAllowedSize(r.ContentType, size))
+            .WithMessage(r => UploadRules.SizeLimitText(r.ContentType));
     }
 }
 
@@ -58,10 +62,10 @@ internal sealed class ManageMediaHandler(ProgramsDbContext db, IObjectStorage st
             return loaded.Error!;
         }
 
-        var extension = Path.GetExtension(request.FileName).ToLowerInvariant();
-        var key = $"{loaded.Value!.MediaKeyPrefix}{Guid.CreateVersion7():N}{extension}";
+        // The extension comes from the (allowed) type, never from the user's file name.
+        var key = UploadRules.NewKey(loaded.Value!.MediaKeyPrefix, request.ContentType);
 
-        return storage.CreateUpload(key, request.ContentType, UploadLifetime);
+        return storage.CreateUpload(key, request.ContentType, request.Size, UploadLifetime);
     }
 
     public async Task<Result<AttachMediaResponse>> Attach(Guid programId, AttachMediaRequest request, CurrentUser user, CancellationToken cancellationToken)
@@ -73,12 +77,25 @@ internal sealed class ManageMediaHandler(ProgramsDbContext db, IObjectStorage st
             return loaded.Error!;
         }
 
-        if (!await storage.ExistsAsync(request.ObjectKey, cancellationToken))
+        // Only keys this program's upload endpoint issues (prefix, id and an allowed extension) can be checked, and deleted.
+        if (!UploadRules.IsIssuedKey(request.ObjectKey, loaded.Value!.MediaKeyPrefix))
         {
-            return Error.Invalid("The media hasn't been uploaded yet.");
+            return Error.Invalid("The media object doesn't belong to this program.");
         }
 
-        var attached = loaded.Value!.AttachMedia(request.Target, request.TargetId, request.ObjectKey, request.ContentType, request.Caption);
+        // The stored object's real type and size decide, not the type the request claims. An object already attached
+        // in this program (re-used, or picked by mistake) is checked but never deleted.
+        var program = loaded.Value!;
+        var inUse = program.CoverObjectKey == request.ObjectKey || program.Media.Any(m => m.ObjectKey == request.ObjectKey);
+        var checkedType = await storage.CheckUploadAsync(
+            request.ObjectKey, imagesOnly: request.Target == MediaTarget.Cover, inUse, cancellationToken);
+
+        if (!checkedType.IsSuccess)
+        {
+            return checkedType.Error!;
+        }
+
+        var attached = loaded.Value!.AttachMedia(request.Target, request.TargetId, request.ObjectKey, checkedType.Value!, request.Caption);
 
         if (!attached.IsSuccess)
         {

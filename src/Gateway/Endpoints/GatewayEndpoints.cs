@@ -9,10 +9,9 @@ public static class GatewayEndpoints
 {
     public static void UseGatewayEndpoints(this WebApplication app)
     {
-        app.UseUserInfoEndpoint();
+        app.UseUserEndpoint();
         app.UseLoginEndpoint();
         app.UseLogoutEndpoint();
-        app.UseGatewayStatusEndpoint();
     }
 
     private static void UseLogoutEndpoint(this WebApplication app)
@@ -32,7 +31,7 @@ public static class GatewayEndpoints
             };
 
             return Results.SignOut(authProps, authSchemes);
-        });
+        }).RequireRateLimiting(GatewaySetup.AuthRateLimit);
     }
 
     private static void UseLoginEndpoint(this WebApplication app)
@@ -42,7 +41,8 @@ public static class GatewayEndpoints
             Results.Challenge(new AuthenticationProperties
             {
                 RedirectUri = LocalOrRoot(redirectUrl)
-            }, [OpenIdConnectDefaults.AuthenticationScheme]));
+            }, [OpenIdConnectDefaults.AuthenticationScheme]))
+            .RequireRateLimiting(GatewaySetup.AuthRateLimit);
 
         // Same as /login, but Keycloak opens its registration form.
         app.MapGet("/signup", (string? redirectUrl) =>
@@ -54,7 +54,7 @@ public static class GatewayEndpoints
             properties.Items[PromptItem] = "create";
 
             return Results.Challenge(properties, [OpenIdConnectDefaults.AuthenticationScheme]);
-        });
+        }).RequireRateLimiting(GatewaySetup.AuthRateLimit);
     }
 
     /// <summary>Authentication property carrying the OIDC "prompt" for the Keycloak redirect.</summary>
@@ -72,21 +72,8 @@ public static class GatewayEndpoints
         && (url.Length == 1 || (url[1] != '/' && url[1] != '\\'))
         && !url.Any(char.IsControl);
 
-    private static void UseUserInfoEndpoint(this WebApplication app)
+    private static void UseUserEndpoint(this WebApplication app)
     {
-        app.MapGet("/userinfo", (ClaimsPrincipal user) =>
-        {
-            var claims = user.Claims;
-            var dict = new Dictionary<string, string>();
-
-            foreach (var entry in claims)
-            {
-                dict[entry.Type] = entry.Value;
-            }
-
-            return dict;
-        });
-
         app.MapGet("/api/user", (ClaimsPrincipal user) =>
         {
             var isAuthenticated = user.Identity?.IsAuthenticated ?? false;
@@ -107,17 +94,4 @@ public static class GatewayEndpoints
             });
         });
     }
-
-    private static void UseGatewayStatusEndpoint(this WebApplication app)
-    {
-        app.MapGet("/gatewaystatus", (ClaimsPrincipal user) =>
-        {
-            var dict = new Dictionary<string, string>();
-
-            dict.Add("version", "1.0.0");
-
-            return dict;
-        });
-    }
-
 }

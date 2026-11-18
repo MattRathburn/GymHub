@@ -18,7 +18,8 @@ public sealed record MemberProfileDto(string UserId, string DisplayName, Uri? Av
 
 public sealed record SaveMemberProfileRequest(string DisplayName);
 
-public sealed record MemberAvatarUploadRequest(string FileName, string ContentType);
+/// <summary><paramref name="Size"/> is the file's size in bytes; the upload URL only accepts exactly that many.</summary>
+public sealed record MemberAvatarUploadRequest(string FileName, string ContentType, long Size);
 
 public sealed record SetMemberAvatarRequest(string ObjectKey);
 
@@ -36,8 +37,11 @@ internal sealed class MemberAvatarUploadValidator : AbstractValidator<MemberAvat
     {
         RuleFor(r => r.FileName).NotEmpty().MaximumLength(200);
         RuleFor(r => r.ContentType).NotEmpty().MaximumLength(100)
-            .Must(t => t.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-            .WithMessage("Avatars must be images.");
+            .Must(UploadRules.IsAllowedImage)
+            .WithMessage($"Avatars must be {UploadRules.ImageTypesText} images.");
+        RuleFor(r => r.Size)
+            .Must((r, size) => UploadRules.IsAllowedSize(r.ContentType, size))
+            .WithMessage(r => UploadRules.SizeLimitText(r.ContentType));
     }
 }
 
@@ -90,14 +94,14 @@ internal sealed class EditMyMemberProfileHandler(TrainersDbContext db, IObjectSt
 
     public PresignedUpload RequestAvatarUpload(MemberAvatarUploadRequest request, CurrentUser user)
     {
-        var extension = Path.GetExtension(request.FileName).ToLowerInvariant();
-        var key = $"{MemberProfile.AvatarKeyPrefix(user.Id)}{Guid.CreateVersion7():N}{extension}";
-        return storage.CreateUpload(key, request.ContentType, UploadLifetime);
+        // The extension comes from the (allowed) type, never from the user's file name.
+        var key = UploadRules.NewKey(MemberProfile.AvatarKeyPrefix(user.Id), request.ContentType);
+        return storage.CreateUpload(key, request.ContentType, request.Size, UploadLifetime);
     }
 
     public async Task<Result<MemberProfileDto>> SetAvatar(SetMemberAvatarRequest request, CurrentUser user, CancellationToken cancellationToken)
     {
-        if (!request.ObjectKey.StartsWith(MemberProfile.AvatarKeyPrefix(user.Id), StringComparison.Ordinal))
+        if (!UploadRules.IsIssuedKey(request.ObjectKey, MemberProfile.AvatarKeyPrefix(user.Id)))
         {
             return Error.Forbidden("That upload doesn't belong to you.");
         }
@@ -109,9 +113,11 @@ internal sealed class EditMyMemberProfileHandler(TrainersDbContext db, IObjectSt
             return Error.NotFound("Save your profile before adding an avatar.");
         }
 
-        if (!await storage.ExistsAsync(request.ObjectKey, cancellationToken))
+        // The stored object, not the request, decides: its real type and size. The current avatar is never deleted.
+        var inUse = profile.AvatarObjectKey == request.ObjectKey;
+        if (await storage.CheckUploadAsync(request.ObjectKey, imagesOnly: true, inUse, cancellationToken) is { IsSuccess: false } invalid)
         {
-            return Error.Invalid("The avatar hasn't been uploaded yet.");
+            return invalid.Error!;
         }
 
         profile.SetAvatar(request.ObjectKey, timeProvider.GetUtcNow().UtcDateTime);

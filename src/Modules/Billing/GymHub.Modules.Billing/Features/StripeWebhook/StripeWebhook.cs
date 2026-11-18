@@ -298,6 +298,8 @@ internal static class StripeWebhookEndpoint
                 return outcome == WebhookOutcome.BadSignature ? Results.BadRequest() : Results.Ok();
             })
             .AllowAnonymous()
+            // Stripe sends bursts (retries, many events at once) from a few IPs; the signature check is the guard.
+            .DisableRateLimiting()
             .ExcludeFromDescription()
             .WithName("StripeWebhook");
 }

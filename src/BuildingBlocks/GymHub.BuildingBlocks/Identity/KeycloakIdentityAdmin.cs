@@ -2,8 +2,10 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
@@ -78,9 +80,39 @@ public static class IdentityAdminExtensions
             return;
         }
 
-        builder.Services.Configure<KeycloakAdminOptions>(builder.Configuration.GetSection(KeycloakAdminOptions.SectionName));
+        // The realm defaults to the one the API validates tokens for (Keycloak:Realm); KeycloakAdmin:Realm overrides it.
+        builder.Services.Configure<KeycloakAdminOptions>(options =>
+        {
+            options.Realm = builder.Configuration["Keycloak:Realm"] ?? options.Realm;
+            builder.Configuration.GetSection(KeycloakAdminOptions.SectionName).Bind(options);
+        });
         builder.Services.AddHttpClient<IIdentityAdmin, KeycloakIdentityAdmin>((sp, http) =>
             http.BaseAddress = sp.GetRequiredService<IOptions<KeycloakAdminOptions>>().Value.BaseAddress);
+
+        builder.Services.AddHttpClient(nameof(KeycloakHealthCheck), (sp, http) =>
+            http.BaseAddress = sp.GetRequiredService<IOptions<KeycloakAdminOptions>>().Value.BaseAddress);
+        builder.Services.AddHealthChecks().AddCheck<KeycloakHealthCheck>("keycloak");
+    }
+}
+
+/// <summary>Keycloak serves the realm's discovery document (tokens can't be validated without it).</summary>
+public sealed class KeycloakHealthCheck(IHttpClientFactory httpClientFactory, IOptions<KeycloakAdminOptions> options) : IHealthCheck
+{
+    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var response = await httpClientFactory.CreateClient(nameof(KeycloakHealthCheck))
+                .GetAsync($"realms/{Uri.EscapeDataString(options.Value.Realm)}/.well-known/openid-configuration", cancellationToken);
+
+            return response.IsSuccessStatusCode
+                ? HealthCheckResult.Healthy()
+                : HealthCheckResult.Unhealthy($"Keycloak discovery answered {(int)response.StatusCode}.");
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            return HealthCheckResult.Unhealthy("Keycloak is unreachable.", ex);
+        }
     }
 }
 

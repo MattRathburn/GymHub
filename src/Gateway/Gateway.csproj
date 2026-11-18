@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -7,8 +7,16 @@
     <UserSecretsId>8b1f4c52-6a3e-4d0b-9c7e-2f5a1d3e9b64</UserSecretsId>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <SpaRoot>..\GH.WebApp\gh.webapp.ng\</SpaRoot>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\GymHub.ServiceDefaults\GymHub.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="GH.GatewayTests" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,5 +27,26 @@
     <PackageReference Include="Microsoft.Extensions.ServiceDiscovery.Yarp" />
     <PackageReference Include="Yarp.ReverseProxy" />
   </ItemGroup>
+
+  <!--
+    dotnet publish (and Aspire's container publish) builds the Angular app and ships it as wwwroot, which the
+    Gateway serves (Middleware/SpaHosting.cs). Needs Node on the build machine. SkipSpaBuild=true reuses an existing
+    dist (for example when CI built it in an earlier step).
+  -->
+  <Target Name="PublishSpa" AfterTargets="ComputeFilesToPublish">
+    <Exec Condition="'$(SkipSpaBuild)' != 'true'" WorkingDirectory="$(SpaRoot)" Command="npm ci" />
+    <Exec Condition="'$(SkipSpaBuild)' != 'true'" WorkingDirectory="$(SpaRoot)" Command="npm run build" />
+
+    <ItemGroup>
+      <SpaDistFiles Include="$(SpaRoot)dist\gh.webapp.ng\browser\**" />
+      <ResolvedFileToPublish Include="@(SpaDistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+        <RelativePath>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+
+    <Error Condition="!Exists('$(SpaRoot)dist\gh.webapp.ng\browser\index.html')" Text="The Angular build produced no index.html." />
+  </Target>
 
 </Project>

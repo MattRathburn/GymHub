@@ -81,6 +81,9 @@ dotnet test GymHub.slnx
 ```
 The functional tests need Docker. For the Angular tests, run `npm test` in `src/GH.WebApp/gh.webapp.ng`.
 
+**Publishing the Gateway**  
+`dotnet publish src/Gateway -c Release` also builds the Angular app (it needs Node) and puts it in the Gateway's `wwwroot`, so one Gateway serves the site. Outside Development the Gateway needs an https Keycloak authority, its domain in `AllowedHosts`, and the media storage origin in `Gateway:Csp:MediaOrigins`.
+
 CI (`.github/workflows/ci.yml`) runs the .NET build and tests, the Angular tests and build, and a gitleaks secret scan. For now it only runs manually: **Actions → CI → Run workflow**.
 
 ## Usage
