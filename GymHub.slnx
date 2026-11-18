@@ -54,6 +54,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/GH.FunctionalTests/GH.FunctionalTests.csproj" />
+    <Project Path="tests/GH.GatewayTests/GH.GatewayTests.csproj" />
     <Project Path="tests/GH.UnitTests/GH.UnitTests.csproj" />
   </Folder>
 </Solution>

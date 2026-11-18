@@ -105,7 +105,7 @@ export class ProgramsService {
   }
 
   requestUpload(id: string, file: File): Observable<PresignedUpload> {
-    return this.http.post<PresignedUpload>(`${this.baseUrl}/${id}/media/uploads`, { fileName: file.name, contentType: file.type });
+    return this.http.post<PresignedUpload>(`${this.baseUrl}/${id}/media/uploads`, { fileName: file.name, contentType: file.type, size: file.size });
   }
 
   /** PUTs the file straight to object storage with the presigned URL. */

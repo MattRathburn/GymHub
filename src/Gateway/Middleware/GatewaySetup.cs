@@ -2,6 +2,7 @@ using Gateway.Configuration;
 using Gateway.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using System.Threading.RateLimiting;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace Gateway.Middleware;
@@ -51,6 +52,8 @@ public static class GatewaySetup
         }
     }
 
+    public const string AuthRateLimit = "auth";
+
     public static void AddGateway(this WebApplicationBuilder builder, GatewayConfigurationRecord config, DiscoveryDocument disco)
     {
         builder.Services.AddReverseProxy()
@@ -71,7 +74,22 @@ public static class GatewaySetup
         builder.Services.AddSession(options =>
         {
             options.IdleTimeout = TimeSpan.FromMinutes(sessionTimeoutInMin);
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.Cookie.HttpOnly = true;
         });
+
+        // Sign-in, sign-up and sign-out start an OIDC round trip each; limit them per client IP.
+        var authPermitsPerMinute = builder.Configuration.GetValue("RateLimiting:AuthPermitsPerMinute", 20);
+        builder.Services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy(AuthRateLimit, context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = authPermitsPerMinute, Window = TimeSpan.FromMinutes(1) }));
+        });
+
+        builder.Services.AddHttpClient(nameof(KeycloakHealthCheck));
+        builder.Services.AddHealthChecks().AddCheck<KeycloakHealthCheck>("keycloak");
 
         builder.Services.AddAntiforgery(setup =>
         {
@@ -98,6 +116,8 @@ public static class GatewaySetup
         {
             setup.ExpireTimeSpan = TimeSpan.FromMinutes(sessionTimeoutInMin);
             setup.SlidingExpiration = true;
+            setup.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            setup.Cookie.HttpOnly = true;
         })
         .AddOpenIdConnect(options =>
         {
@@ -111,7 +131,7 @@ public static class GatewaySetup
             options.GetClaimsFromUserInfoEndpoint = config.QueryUserInfoEndpoint;
             options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
             options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
-            options.RequireHttpsMetadata = false;
+            options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
 
             // Keep Keycloak's claim names ("sub", "roles") instead of the WS-* URIs.
             options.MapInboundClaims = false;
@@ -174,6 +194,7 @@ public static class GatewaySetup
     public static void UseGateway(this WebApplication app)
     {
         app.UseRouting();
+        app.UseRateLimiter();
         app.UseSession();
         app.UseAuthentication();
         app.UseAuthorization();

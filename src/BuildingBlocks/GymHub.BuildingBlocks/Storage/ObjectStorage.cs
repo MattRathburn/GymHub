@@ -1,8 +1,10 @@
 using System.Data.Common;
+using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -15,23 +17,37 @@ public sealed record PresignedUpload(string ObjectKey, Uri UploadUrl, DateTimeOf
 /// </summary>
 public interface IObjectStorage
 {
-    PresignedUpload CreateUpload(string objectKey, string contentType, TimeSpan lifetime);
+    /// <summary>
+    /// A presigned PUT for exactly <paramref name="size"/> bytes of <paramref name="contentType"/>: both are signed,
+    /// so storage refuses a body of another length or type.
+    /// </summary>
+    PresignedUpload CreateUpload(string objectKey, string contentType, long size, TimeSpan lifetime);
 
     Uri CreateDownloadUrl(string objectKey, TimeSpan lifetime);
 
-    Task<bool> ExistsAsync(string objectKey, CancellationToken cancellationToken);
+    /// <summary>The object's size and stored content type, or null when there is no such object.</summary>
+    Task<StoredObject?> GetInfoAsync(string objectKey, CancellationToken cancellationToken);
+
+    /// <summary>Deletes one object. Deleting a missing object is fine.</summary>
+    Task DeleteAsync(string objectKey, CancellationToken cancellationToken);
 
     /// <summary>Deletes every object whose key starts with the prefix. Deleting nothing is fine.</summary>
     Task DeletePrefixAsync(string prefix, CancellationToken cancellationToken);
+
+    /// <summary>Every object whose key starts with the prefix, a page at a time.</summary>
+    IAsyncEnumerable<ListedObject> ListAsync(string prefix, CancellationToken cancellationToken);
 }
+
+/// <summary>An object found by <see cref="IObjectStorage.ListAsync"/>; LastModified is UTC.</summary>
+public sealed record ListedObject(string Key, DateTime LastModified);
 
 internal sealed class S3ObjectStorage(IAmazonS3 s3, string bucket, Protocol protocol, TimeProvider timeProvider) : IObjectStorage
 {
-    public PresignedUpload CreateUpload(string objectKey, string contentType, TimeSpan lifetime)
+    public PresignedUpload CreateUpload(string objectKey, string contentType, long size, TimeSpan lifetime)
     {
         var expiresAt = timeProvider.GetUtcNow().Add(lifetime);
 
-        var url = s3.GetPreSignedURL(new GetPreSignedUrlRequest
+        var request = new GetPreSignedUrlRequest
         {
             BucketName = bucket,
             Key = objectKey,
@@ -39,7 +55,11 @@ internal sealed class S3ObjectStorage(IAmazonS3 s3, string bucket, Protocol prot
             ContentType = contentType,
             Expires = expiresAt.UtcDateTime,
             Protocol = protocol
-        });
+        };
+
+        // Signed (X-Amz-SignedHeaders includes content-length), so the browser's PUT must be exactly this size.
+        request.Headers.ContentLength = size;
+        var url = s3.GetPreSignedURL(request);
 
         return new PresignedUpload(objectKey, new Uri(url), expiresAt);
     }
@@ -54,17 +74,39 @@ internal sealed class S3ObjectStorage(IAmazonS3 s3, string bucket, Protocol prot
             Protocol = protocol
         }));
 
-    public async Task<bool> ExistsAsync(string objectKey, CancellationToken cancellationToken)
+    public async Task<StoredObject?> GetInfoAsync(string objectKey, CancellationToken cancellationToken)
     {
         try
         {
-            await s3.GetObjectMetadataAsync(bucket, objectKey, cancellationToken);
-            return true;
+            var metadata = await s3.GetObjectMetadataAsync(bucket, objectKey, cancellationToken);
+            return new StoredObject(metadata.ContentLength, metadata.Headers.ContentType);
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
-            return false;
+            return null;
         }
+    }
+
+    public Task DeleteAsync(string objectKey, CancellationToken cancellationToken) =>
+        s3.DeleteObjectAsync(bucket, objectKey, cancellationToken);
+
+    public async IAsyncEnumerable<ListedObject> ListAsync(string prefix, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var request = new ListObjectsV2Request { BucketName = bucket, Prefix = prefix };
+        ListObjectsV2Response page;
+
+        do
+        {
+            page = await s3.ListObjectsV2Async(request, cancellationToken);
+
+            foreach (var item in page.S3Objects ?? [])
+            {
+                yield return new ListedObject(item.Key, (item.LastModified ?? DateTime.UtcNow).ToUniversalTime());
+            }
+
+            request.ContinuationToken = page.NextContinuationToken;
+        }
+        while (page.IsTruncated == true);
     }
 
     public async Task DeletePrefixAsync(string prefix, CancellationToken cancellationToken)
@@ -133,8 +175,26 @@ public static class ObjectStorageExtensions
         builder.Services.AddSingleton<IAmazonS3>(s3);
         builder.Services.AddSingleton<IObjectStorage>(sp => new S3ObjectStorage(s3, BucketName, protocol, sp.GetRequiredService<TimeProvider>()));
         builder.Services.AddHostedService<ObjectStorageInitializer>();
+        builder.Services.AddHealthChecks().AddCheck<ObjectStorageHealthCheck>("object-storage");
 
         return builder;
+    }
+}
+
+/// <summary>The media bucket can be listed.</summary>
+public sealed class ObjectStorageHealthCheck(IAmazonS3 s3) : IHealthCheck
+{
+    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await s3.ListObjectsV2Async(new ListObjectsV2Request { BucketName = ObjectStorageExtensions.BucketName, MaxKeys = 1 }, cancellationToken);
+            return HealthCheckResult.Healthy();
+        }
+        catch (Exception ex) when (ex is AmazonServiceException or HttpRequestException or TaskCanceledException)
+        {
+            return HealthCheckResult.Unhealthy("Object storage is unreachable.", ex);
+        }
     }
 }
 

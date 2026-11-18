@@ -34,7 +34,7 @@ import { TrainersService } from './trainers.service';
             }
             <label class="btn-secondary cursor-pointer">
               Upload avatar
-              <input type="file" accept="image/*" class="hidden" [disabled]="busy()" (change)="uploadAvatar($event)" />
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" [disabled]="busy()" (change)="uploadAvatar($event)" />
             </label>
           </div>
         } @else {

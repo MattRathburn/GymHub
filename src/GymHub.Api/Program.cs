@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Asp.Versioning;
+using GymHub.Api;
 using GymHub.BuildingBlocks.Auth;
 using GymHub.BuildingBlocks.Modules;
 using GymHub.BuildingBlocks.Outbox;
@@ -24,16 +25,21 @@ builder.Services.AddProblemDetails();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
+var realm = builder.Configuration["Keycloak:Realm"]
+    ?? throw new InvalidOperationException("Keycloak:Realm is not configured.");
+
 builder.Services.AddAuthentication()
-    .AddKeycloakJwtBearer("keycloak", realm: "GH-Test-Realm", options =>
+    .AddKeycloakJwtBearer("keycloak", realm, options =>
     {
-        options.RequireHttpsMetadata = false;
+        // Local Keycloak runs on plain http; anywhere else the metadata must come over https.
+        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
         options.Audience = "gymhub-api";
         options.MapInboundClaims = false;
         options.TokenValidationParameters.NameClaimType = "preferred_username";
         options.TokenValidationParameters.RoleClaimType = "roles";
     });
 builder.Services.AddGymHubAuthorization();
+builder.AddApiRateLimiting();
 
 builder.AddObjectStorage();
 builder.Services.AddOutboxDispatcher();
@@ -48,9 +54,14 @@ builder.AddDefaultOpenApi(withApiVersioning);
 
 var app = builder.Build();
 
+app.UseDefaultForwardedHeaders();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseRouting();
+app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAccountGuard();
+app.UseAuthorization();
 app.MapDefaultEndpoints();
 
 var api = app.NewVersionedApi("GymHub")

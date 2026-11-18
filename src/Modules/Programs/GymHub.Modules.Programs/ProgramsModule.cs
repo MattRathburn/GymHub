@@ -47,6 +47,8 @@ public sealed class ProgramsModule : IModule
         services.AddScoped<ProgramContentMapper>();
         services.AddSingleton<WeekReleaseJob>();
         services.AddHostedService(sp => sp.GetRequiredService<WeekReleaseJob>());
+        services.AddSingleton<ProgramMediaSweeper>();
+        services.AddHostedService(sp => sp.GetRequiredService<ProgramMediaSweeper>());
         services.AddIntegrationEventHandler<ProgramRatingChanged, ProgramRatingHandler>();
         services.AddIntegrationEventHandler<TrainerRevoked, RevokedTrainerHandler>();
 

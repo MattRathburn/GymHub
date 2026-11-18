@@ -125,8 +125,8 @@ public class AccountApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var storage = (FakeObjectStorage)factory.Services.GetRequiredService<IObjectStorage>();
         var draftCover = $"{TrainingProgram.MediaKeyPrefixFor(draftId)}cover.jpg";
         var archivedCover = $"{TrainingProgram.MediaKeyPrefixFor(archivedId)}cover.jpg";
-        storage.Objects[draftCover] = "image/jpeg";
-        storage.Objects[archivedCover] = "image/jpeg";
+        storage.Objects[draftCover] = new StoredObject(1024, "image/jpeg");
+        storage.Objects[archivedCover] = new StoredObject(1024, "image/jpeg");
 
         Assert.Equal(HttpStatusCode.OK, (await ScheduleAsync(trainer)).StatusCode);
         Assert.Equal(1, await RunJobAfterGracePeriodAsync(trainerId));

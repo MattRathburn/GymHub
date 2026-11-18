@@ -1,4 +1,4 @@
-﻿using Asp.Versioning;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -16,22 +16,19 @@ public static partial class Extensions
         var configuration = app.Configuration;
         var openApiSection = configuration.GetSection("OpenApi");
 
-        if (!openApiSection.Exists())
+        // The API description and Scalar are for development only: production doesn't publish its API surface.
+        if (!openApiSection.Exists() || !app.Environment.IsDevelopment())
         {
             return app;
         }
 
         app.MapOpenApi();
-
-        if (app.Environment.IsDevelopment())
+        app.MapScalarApiReference(options =>
         {
-            app.MapScalarApiReference(options =>
-            {
-                // Disable default fonts to avoid download unnecessary fonts
-                options.DefaultFonts = false;
-            });
-            app.MapGet("/", () => Results.Redirect("/scalar/v1")).ExcludeFromDescription();
-        }
+            // Disable default fonts to avoid download unnecessary fonts
+            options.DefaultFonts = false;
+        });
+        app.MapGet("/", () => Results.Redirect("/scalar/v1")).ExcludeFromDescription();
 
         return app;
     }

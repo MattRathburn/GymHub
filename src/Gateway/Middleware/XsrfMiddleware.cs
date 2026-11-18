@@ -30,7 +30,8 @@ public static class XsrfMiddleware
             }
 
             ctx.Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken,
-                        new CookieOptions() { HttpOnly = false });
+                        // Read by the SPA (it echoes it in X-XSRF-TOKEN), so not HttpOnly.
+                        new CookieOptions() { HttpOnly = false, Secure = true, SameSite = SameSiteMode.Strict });
 
             await next(ctx);
         });

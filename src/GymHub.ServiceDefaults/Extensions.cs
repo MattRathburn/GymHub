@@ -1,5 +1,9 @@
+using System.Net;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
@@ -17,6 +21,7 @@ public static partial class Extensions
         builder.AddBasicServiceDefaults();
 
         builder.Services.AddServiceDiscovery();
+        builder.ConfigureForwardedHeaders();
 
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
@@ -104,25 +109,105 @@ public static partial class Extensions
         return builder;
     }
 
+    /// <summary>
+    /// X-Forwarded-For and -Proto are trusted from loopback (the default) and from the networks and proxies listed
+    /// in ForwardedHeaders:KnownNetworks (CIDR) and ForwardedHeaders:KnownProxies, such as the hosting ingress.
+    /// Anyone else could otherwise spoof the client IP (rate limits) or the scheme.
+    /// </summary>
+    public static IHostApplicationBuilder ConfigureForwardedHeaders(this IHostApplicationBuilder builder)
+    {
+        var section = builder.Configuration.GetSection("ForwardedHeaders");
+
+        builder.Services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+            foreach (var network in section.GetSection("KnownNetworks").Get<string[]>() ?? [])
+            {
+                options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network));
+            }
+
+            foreach (var proxy in section.GetSection("KnownProxies").Get<string[]>() ?? [])
+            {
+                options.KnownProxies.Add(IPAddress.Parse(proxy));
+            }
+        });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// First in the pipeline, so everything after sees the client's IP and scheme. Outside Development the trusted
+    /// proxies must be configured: behind an untrusted proxy every client has the proxy's IP, so the per-IP rate
+    /// limits would apply to the whole site at once. A deployment with no proxy in front says so with
+    /// ForwardedHeaders:NoProxy = true.
+    /// </summary>
+    public static WebApplication UseDefaultForwardedHeaders(this WebApplication app)
+    {
+        var section = app.Configuration.GetSection("ForwardedHeaders");
+        var configured = section.GetSection("KnownNetworks").Get<string[]>() is { Length: > 0 }
+            || section.GetSection("KnownProxies").Get<string[]>() is { Length: > 0 }
+            || section.GetValue<bool>("NoProxy");
+
+        if (!app.Environment.IsDevelopment() && !configured)
+        {
+            throw new InvalidOperationException(
+                "ForwardedHeaders:KnownNetworks or KnownProxies must list the proxies in front of this service (the ingress, and " +
+                "for the API the Gateway's network), or set ForwardedHeaders:NoProxy to true. Otherwise every client shares " +
+                "the proxy's IP and its rate limits.");
+        }
+
+        // Noted before UseForwardedHeaders consumes the headers: health endpoints answer only direct calls.
+        app.Use((context, next) =>
+        {
+            if (IsForwarded(context.Request.Headers))
+            {
+                context.Items[ForwardedItem] = true;
+            }
+
+            return next(context);
+        });
+
+        app.UseForwardedHeaders();
+        return app;
+    }
+
+    private const string ForwardedItem = "gymhub.forwarded";
+
+    /// <summary>
+    /// /health (every check: ready to take traffic) and /alive (the "live" checks: the process responds), in every
+    /// environment for the hosting platform's probes. They answer with the status word only, no check details.
+    /// Probes call the service directly; a request that came through a proxy (the Gateway forwarding /gh-api/health,
+    /// or the public ingress) is the public internet and gets 404, since /health fans out to the database, storage
+    /// and Keycloak and isn't rate limited.
+    /// </summary>
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
-        // Uncomment the following line to enable the Prometheus endpoint (requires the OpenTelemetry.Exporter.Prometheus.AspNetCore package)
-        // app.MapPrometheusScrapingEndpoint();
-
-        // Adding health checks endpoints to applications in non-development environments has security implications.
-        // See https://aka.ms/dotnet/aspire/healthchecks for details before enabling these endpoints in non-development environments.
-        if (app.Environment.IsDevelopment())
+        app.Use((context, next) =>
         {
-            // All health checks must pass for app to be considered ready to accept traffic after starting
-            app.MapHealthChecks("/health");
+            var path = context.Request.Path;
 
-            // Only health checks tagged with the "live" tag must pass for app to be considered alive
-            app.MapHealthChecks("/alive", new HealthCheckOptions
+            if ((path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase) || path.StartsWithSegments("/alive", StringComparison.OrdinalIgnoreCase))
+                && (context.Items.ContainsKey(ForwardedItem) || IsForwarded(context.Request.Headers)))
             {
-                Predicate = r => r.Tags.Contains("live")
-            });
-        }
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+                return Task.CompletedTask;
+            }
+
+            return next(context);
+        });
+
+        app.MapHealthChecks("/health").DisableRateLimiting();
+
+        app.MapHealthChecks("/alive", new HealthCheckOptions
+        {
+            Predicate = r => r.Tags.Contains("live")
+        }).DisableRateLimiting();
 
         return app;
     }
+
+    /// <summary>A proxy touched the request: it carries forwarding headers (or UseForwardedHeaders' X-Original-For).</summary>
+    private static bool IsForwarded(IHeaderDictionary headers) =>
+        headers.ContainsKey("X-Forwarded-For") || headers.ContainsKey("X-Original-For") || headers.ContainsKey("Forwarded");
 }

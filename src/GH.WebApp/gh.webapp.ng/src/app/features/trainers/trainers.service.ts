@@ -85,7 +85,7 @@ export class TrainersService {
   }
 
   requestAvatarUpload(file: File): Observable<PresignedUpload> {
-    return this.http.post<PresignedUpload>(`${this.baseUrl}/me/avatar/uploads`, { fileName: file.name, contentType: file.type });
+    return this.http.post<PresignedUpload>(`${this.baseUrl}/me/avatar/uploads`, { fileName: file.name, contentType: file.type, size: file.size });
   }
 
   setAvatar(objectKey: string): Observable<MyTrainerProfile> {
@@ -104,7 +104,7 @@ export class TrainersService {
   }
 
   requestMemberAvatarUpload(file: File): Observable<PresignedUpload> {
-    return this.http.post<PresignedUpload>(`${this.baseUrl}/me/member-profile/avatar/uploads`, { fileName: file.name, contentType: file.type });
+    return this.http.post<PresignedUpload>(`${this.baseUrl}/me/member-profile/avatar/uploads`, { fileName: file.name, contentType: file.type, size: file.size });
   }
 
   setMemberAvatar(objectKey: string): Observable<MemberProfile> {
