@@ -1,3 +1,4 @@
+using GymHub.BuildingBlocks.Admin;
 using GymHub.BuildingBlocks.Modules;
 using GymHub.BuildingBlocks.Outbox;
 using GymHub.BuildingBlocks.Persistence;
@@ -22,6 +23,7 @@ public sealed class SubscriptionsModule : IModule
     {
         builder.AddModuleDbContext<SubscriptionsDbContext>(SubscriptionsDbContext.SchemaName);
         builder.Services.AddPersonalDataSource<SubscriptionsPersonalData>();
+        builder.Services.AddAdminMetrics<SubscriptionsMetrics>();
 
         builder.Services.AddScoped<IEntitlements, Entitlements>();
         builder.Services.AddScoped<IProgramMembers, ProgramMembers>();

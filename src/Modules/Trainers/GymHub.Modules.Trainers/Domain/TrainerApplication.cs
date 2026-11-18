@@ -8,12 +8,15 @@ public enum ApplicationStatus
 {
     Pending,
     Approved,
-    Rejected
+    Rejected,
+
+    /// <summary>Approved, then an admin revoked the trainer role. The user may apply again.</summary>
+    Revoked
 }
 
 /// <summary>
 /// A user's request to become a trainer. An admin approves it (creating the profile and granting the Keycloak role)
-/// or rejects it. A user has at most one pending application and may reapply after a rejection.
+/// or rejects it. A user has at most one pending application and may reapply after a rejection or a revocation.
 /// </summary>
 public sealed class TrainerApplication
 {
@@ -101,6 +104,17 @@ public sealed class TrainerApplication
         ReviewedAt = now;
         RejectionReason = reason.Trim();
         return Result.Success();
+    }
+
+    /// <summary>Marks an approved application revoked when an admin takes the trainer role away.</summary>
+    public void Revoke(string adminId, DateTime now)
+    {
+        if (Status == ApplicationStatus.Approved)
+        {
+            Status = ApplicationStatus.Revoked;
+            ReviewedBy = adminId;
+            ReviewedAt = now;
+        }
     }
 
     private Error AlreadyReviewed() => Error.Conflict($"This application was already {Status.ToString().ToLowerInvariant()}.");

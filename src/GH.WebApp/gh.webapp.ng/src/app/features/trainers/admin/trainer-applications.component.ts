@@ -5,11 +5,13 @@ import { LoadState, toLoadState } from '../../../core/http/load-state';
 import { problemMessage } from '../../../core/http/problem';
 import { PagedResult } from '../../programs/program.model';
 import { ApplicationStatus, TrainerApplication } from '../trainer.model';
+import { AdminNavComponent } from '../../admin/admin-nav.component';
 import { TrainersService } from '../trainers.service';
 
 /** Admins approve or reject trainer applications. */
 @Component({
   selector: 'app-trainer-applications',
+  imports: [AdminNavComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto max-w-4xl px-4 py-8">
@@ -19,8 +21,10 @@ import { TrainersService } from '../trainers.service';
           <option value="Pending">Pending</option>
           <option value="Approved">Approved</option>
           <option value="Rejected">Rejected</option>
+          <option value="Revoked">Revoked</option>
         </select>
       </div>
+      <app-admin-nav class="mt-4 block" />
 
       @if (notice(); as message) {
         <p class="mt-4 text-sm text-emerald-700">{{ message }}</p>

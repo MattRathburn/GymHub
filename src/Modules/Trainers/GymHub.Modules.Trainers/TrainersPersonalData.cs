@@ -35,7 +35,12 @@ internal sealed class TrainersPersonalData(TrainersDbContext db, IObjectStorage 
             .Select(a => new { a.DisplayName, a.Bio, a.Specialties, a.Links, a.Status, a.SubmittedAt, a.ReviewedAt, a.RejectionReason })
             .ToListAsync(cancellationToken);
 
-        return new { memberProfile, trainerProfile, following, trainerApplications };
+        var trainerRoleRevokedAt = await db.Revocations.AsNoTracking()
+            .Where(r => r.UserId == userId)
+            .Select(r => (DateTime?)r.RevokedAt)
+            .SingleOrDefaultAsync(cancellationToken);
+
+        return new { memberProfile, trainerProfile, following, trainerApplications, trainerRoleRevokedAt };
     }
 
     public async Task EraseAsync(string userId, CancellationToken cancellationToken)
@@ -47,5 +52,6 @@ internal sealed class TrainersPersonalData(TrainersDbContext db, IObjectStorage 
         await db.Profiles.Where(p => p.UserId == userId).ExecuteDeleteAsync(cancellationToken);
         await db.Follows.Where(f => f.UserId == userId || f.TrainerId == userId).ExecuteDeleteAsync(cancellationToken);
         await db.Applications.Where(a => a.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        await db.Revocations.Where(r => r.UserId == userId).ExecuteDeleteAsync(cancellationToken);
     }
 }

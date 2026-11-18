@@ -69,6 +69,9 @@ internal sealed class ReviewApplicationsHandler(TrainersDbContext db, TimeProvid
             profile.Update(application.Details, now);
         }
 
+        // A trainer approved again after a revocation may publish again.
+        await db.Revocations.Where(r => r.UserId == application.UserId).ExecuteDeleteAsync(cancellationToken);
+
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }

@@ -46,6 +46,9 @@ internal sealed class ProfileDirectory(TrainersDbContext db, IObjectStorage stor
             .Select(p => p.UserId)
             .ToListAsync(cancellationToken);
     }
+
+    public Task<bool> IsRevokedAsync(string userId, CancellationToken cancellationToken) =>
+        db.Revocations.AnyAsync(r => r.UserId == userId, cancellationToken);
 }
 
 internal sealed class Followers(TrainersDbContext db) : IFollowers

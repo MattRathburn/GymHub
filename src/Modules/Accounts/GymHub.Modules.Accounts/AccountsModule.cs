@@ -1,9 +1,12 @@
 using FluentValidation;
+using GymHub.BuildingBlocks.Admin;
+using GymHub.BuildingBlocks.Auth;
 using GymHub.BuildingBlocks.Identity;
 using GymHub.BuildingBlocks.Modules;
 using GymHub.BuildingBlocks.Persistence;
-using GymHub.BuildingBlocks.Privacy;
 using GymHub.Modules.Accounts.Data;
+using GymHub.Modules.Accounts.Features.AdminMetrics;
+using GymHub.Modules.Accounts.Features.AdminUsers;
 using GymHub.Modules.Accounts.Features.AccountStatus;
 using GymHub.Modules.Accounts.Features.ExportData;
 using GymHub.Modules.Accounts.Features.ScheduleDeletion;
@@ -16,7 +19,8 @@ namespace GymHub.Modules.Accounts;
 
 /// <summary>
 /// The member's own account: download their data, and delete the account after a grace period. The data itself
-/// lives in the other modules, which each register an IPersonalDataSource.
+/// lives in the other modules, which each register an IPersonalDataSource. Also the admin side of accounts:
+/// the user list, suspensions, and the dashboard (each module registers an IAdminMetricsSource).
 /// </summary>
 public sealed class AccountsModule : IModule
 {
@@ -33,10 +37,15 @@ public sealed class AccountsModule : IModule
         services.AddMemoryCache();
         services.AddScoped<DeletedAccounts>();
         services.AddScoped<IDeletedAccounts>(sp => sp.GetRequiredService<DeletedAccounts>());
+        services.AddScoped<SuspendedAccounts>();
+        services.AddScoped<ISuspendedAccounts>(sp => sp.GetRequiredService<SuspendedAccounts>());
+        services.AddAdminMetrics<AccountsMetrics>();
 
         services.AddScoped<AccountStatusHandler>();
         services.AddScoped<ExportDataHandler>();
         services.AddScoped<ScheduleDeletionHandler>();
+        services.AddScoped<AdminUsersHandler>();
+        services.AddScoped<AdminMetricsHandler>();
 
         services.AddSingleton<AccountDeletionJob>();
         services.AddHostedService(sp => sp.GetRequiredService<AccountDeletionJob>());
@@ -47,5 +56,7 @@ public sealed class AccountsModule : IModule
         AccountStatusEndpoint.Map(endpoints);
         ExportDataEndpoint.Map(endpoints);
         ScheduleDeletionEndpoint.Map(endpoints);
+        AdminUsersEndpoint.Map(endpoints);
+        AdminMetricsEndpoint.Map(endpoints);
     }
 }

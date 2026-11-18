@@ -1,6 +1,3 @@
-using GymHub.ServiceDefaults;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GymHub.BuildingBlocks.Privacy;
@@ -24,41 +21,11 @@ public interface IPersonalDataSource
     Task EraseAsync(string userId, CancellationToken cancellationToken);
 }
 
-/// <summary>
-/// Users whose account deletion has finished (implemented by the Accounts module). Their sign-ins are refused and
-/// nothing new is stored for them, so erased data doesn't come back through a still-open session or a late event.
-/// </summary>
-public interface IDeletedAccounts
-{
-    Task<bool> IsDeletedAsync(string userId, CancellationToken cancellationToken);
-
-    /// <summary>The deleted ones among these users.</summary>
-    Task<IReadOnlySet<string>> FindDeletedAsync(IReadOnlyCollection<string> userIds, CancellationToken cancellationToken);
-}
-
 public static class PersonalDataExtensions
 {
     public static IServiceCollection AddPersonalDataSource<T>(this IServiceCollection services)
         where T : class, IPersonalDataSource =>
         services.AddScoped<IPersonalDataSource, T>();
-
-    /// <summary>
-    /// Answers 401 to requests from a deleted account. Its token stays valid until it expires, and a still-open tab
-    /// would otherwise store data again (the notification bell saves the email address on every poll).
-    /// </summary>
-    public static IApplicationBuilder UseDeletedAccountGuard(this IApplicationBuilder app) =>
-        app.Use(async (context, next) =>
-        {
-            if (context.User.GetUserId() is { Length: > 0 } userId
-                && context.RequestServices.GetService<IDeletedAccounts>() is { } deleted
-                && await deleted.IsDeletedAsync(userId, context.RequestAborted))
-            {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                return;
-            }
-
-            await next(context);
-        });
 }
 
 /// <summary>The name that replaces a deleted user's name on content that stays, such as posts and reviews.</summary>

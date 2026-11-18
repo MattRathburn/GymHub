@@ -1,4 +1,5 @@
 using FluentValidation;
+using GymHub.BuildingBlocks.Admin;
 using GymHub.BuildingBlocks.Modules;
 using GymHub.BuildingBlocks.Persistence;
 using GymHub.BuildingBlocks.Privacy;
@@ -27,6 +28,7 @@ public sealed class ReviewsModule : IModule
     {
         builder.AddModuleDbContext<ReviewsDbContext>(ReviewsDbContext.SchemaName);
         builder.Services.AddPersonalDataSource<ReviewsPersonalData>();
+        builder.Services.AddAdminMetrics<ReviewsMetrics>();
 
         var services = builder.Services;
         services.AddValidatorsFromAssemblyContaining<ReviewsModule>(includeInternalTypes: true);

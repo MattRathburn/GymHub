@@ -1,11 +1,12 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { TrainerApplicationsComponent } from './trainer-applications.component';
 
 describe('TrainerApplicationsComponent', () => {
   it('loads pending applications and lists them', async () => {
-    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
     const fixture = TestBed.createComponent(TrainerApplicationsComponent);
     const backend = TestBed.inject(HttpTestingController);
 

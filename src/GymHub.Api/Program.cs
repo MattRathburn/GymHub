@@ -3,7 +3,6 @@ using Asp.Versioning;
 using GymHub.BuildingBlocks.Auth;
 using GymHub.BuildingBlocks.Modules;
 using GymHub.BuildingBlocks.Outbox;
-using GymHub.BuildingBlocks.Privacy;
 using GymHub.BuildingBlocks.Storage;
 using GymHub.Modules.Accounts;
 using GymHub.Modules.Billing;
@@ -51,7 +50,7 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
-app.UseDeletedAccountGuard();
+app.UseAccountGuard();
 app.MapDefaultEndpoints();
 
 var api = app.NewVersionedApi("GymHub")

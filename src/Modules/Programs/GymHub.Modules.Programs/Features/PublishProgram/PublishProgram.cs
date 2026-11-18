@@ -4,12 +4,13 @@ using GymHub.BuildingBlocks.Results;
 using GymHub.Modules.Billing.Contracts;
 using GymHub.Modules.Programs.Data;
 using GymHub.Modules.Programs.Features.Shared;
+using GymHub.Modules.Trainers.Contracts;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 
 namespace GymHub.Modules.Programs.Features.PublishProgram;
 
-internal sealed class PublishProgramHandler(ProgramsDbContext db, IPayoutReadiness payouts, TimeProvider timeProvider)
+internal sealed class PublishProgramHandler(ProgramsDbContext db, IPayoutReadiness payouts, ITrainerDirectory trainers, TimeProvider timeProvider)
 {
     public async Task<Result> Handle(Guid programId, CurrentUser user, CancellationToken cancellationToken)
     {
@@ -21,6 +22,12 @@ internal sealed class PublishProgramHandler(ProgramsDbContext db, IPayoutReadine
         }
 
         var program = loaded.Value!;
+
+        // The role may still be in the trainer's token for a few minutes after an admin revoked it.
+        if (await trainers.IsRevokedAsync(program.TrainerId, cancellationToken))
+        {
+            return Error.Forbidden("Your trainer role was revoked, so you can't publish programs.");
+        }
 
         if (!program.CurrentPrice.Price.IsFree && !await payouts.IsReadyAsync(program.TrainerId, cancellationToken))
         {

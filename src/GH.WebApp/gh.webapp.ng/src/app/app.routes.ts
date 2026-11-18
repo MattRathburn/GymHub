@@ -147,6 +147,24 @@ export const appRoutes: Route[] = [
     loadComponent: () => import('./features/trainers/following.component').then((m) => m.FollowingComponent),
   },
   {
+    path: 'admin',
+    title: 'GymHub · Admin',
+    canActivate: [adminGuard],
+    loadComponent: () => import('./features/admin/dashboard.component').then((m) => m.DashboardComponent),
+  },
+  {
+    path: 'admin/users',
+    title: 'GymHub · Users',
+    canActivate: [adminGuard],
+    loadComponent: () => import('./features/admin/users.component').then((m) => m.UsersComponent),
+  },
+  {
+    path: 'admin/programs',
+    title: 'GymHub · Programs (admin)',
+    canActivate: [adminGuard],
+    loadComponent: () => import('./features/admin/programs.component').then((m) => m.ProgramsComponent),
+  },
+  {
     path: 'admin/trainer-applications',
     title: 'GymHub · Trainer applications',
     canActivate: [adminGuard],
