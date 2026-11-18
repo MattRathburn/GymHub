@@ -1,3 +1,4 @@
+using GymHub.BuildingBlocks.Jobs;
 using GymHub.Modules.Programs.Contracts;
 using GymHub.Modules.Programs.Data;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,8 @@ namespace GymHub.Modules.Programs;
 /// <summary>
 /// Raises ProgramWeekReleased once for each week whose calendar release date has arrived.
 /// </summary>
-internal sealed class WeekReleaseJob(IServiceScopeFactory scopeFactory, TimeProvider timeProvider, ILogger<WeekReleaseJob> logger) : BackgroundService
+internal sealed class WeekReleaseJob(
+    IServiceScopeFactory scopeFactory, ISingletonJobLock jobLock, TimeProvider timeProvider, ILogger<WeekReleaseJob> logger) : BackgroundService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromHours(1);
 
@@ -22,7 +24,7 @@ internal sealed class WeekReleaseJob(IServiceScopeFactory scopeFactory, TimeProv
         {
             try
             {
-                await RunOnceAsync(stoppingToken);
+                await jobLock.TryRunAsync("programs-week-release", RunOnceAsync, stoppingToken);
             }
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
             {

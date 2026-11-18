@@ -1,9 +1,8 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+import { HubConnection } from '@microsoft/signalr';
 import { Subject, firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { getCookie } from '../../core/auth/get-cookie';
-import { xsrfCookieName, xsrfHeaderName } from '../../core/auth/secure-api.interceptor';
+import { HubTransport, buildHubConnection, startHub } from '../../core/realtime/hub-connection';
 import { NotificationsService } from './notifications.service';
 
 /**
@@ -20,38 +19,40 @@ export class NotificationsRealtimeService {
   readonly changes = new Subject<void>();
 
   private connection?: HubConnection;
+  private connecting?: Promise<void>;
 
   /** Loads the count and starts listening. Safe to call more than once. */
   async connect(): Promise<void> {
     await this.refresh();
-
-    if (this.connection) {
-      return;
-    }
-
-    const connection = this.createConnection();
-    this.connection = connection;
-
-    connection.on('notificationsChanged', (count: number) => {
-      this.unread.set(count);
-      this.changes.next();
-    });
-    // Counts may have moved while disconnected.
-    connection.onreconnected(() => void this.refresh());
-
-    try {
-      await connection.start();
-    } catch (error) {
-      // The bell still works; it just won't update until the next page load.
-      console.warn('Live notifications unavailable.', error);
-    }
+    this.connecting ??= this.start();
+    await this.connecting;
   }
 
   async disconnect(): Promise<void> {
     const connection = this.connection;
     this.connection = undefined;
+    this.connecting = undefined;
     this.unread.set(0);
     await connection?.stop();
+  }
+
+  private async start(): Promise<void> {
+    try {
+      this.connection = await startHub(
+        (transport) => this.createConnection(transport),
+        (connection) => {
+          connection.on('notificationsChanged', (count: number) => {
+            this.unread.set(count);
+            this.changes.next();
+          });
+          // Counts may have moved while disconnected.
+          connection.onreconnected(() => void this.refresh());
+        },
+      );
+    } catch (error) {
+      // The bell still works; it just won't update until the next page load.
+      console.warn('Live notifications unavailable.', error);
+    }
   }
 
   async refresh(): Promise<void> {
@@ -62,14 +63,7 @@ export class NotificationsRealtimeService {
     }
   }
 
-  protected createConnection(): HubConnection {
-    return new HubConnectionBuilder()
-      .withUrl(`${environment.apiBaseUrl}/notifications/hub`, {
-        withCredentials: true,
-        headers: { [xsrfHeaderName]: getCookie(xsrfCookieName) },
-      })
-      .withAutomaticReconnect()
-      .configureLogging(LogLevel.Warning)
-      .build();
+  protected createConnection(transport: HubTransport = 'websocket'): HubConnection {
+    return buildHubConnection(`${environment.apiBaseUrl}/notifications/hub`, transport);
   }
 }

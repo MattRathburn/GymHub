@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GH.FunctionalTests;
 
@@ -305,6 +306,35 @@ public class DiscussionsApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         await StartAsync(Trainer, programId, "General", "Members only");
 
         // Both are sent in one group broadcast; once the trainer has it, the member would have too.
+        await trainerHeard.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        await Task.Delay(TimeSpan.FromMilliseconds(500), Ct);
+        Assert.False(memberHeard.Task.IsCompleted);
+    }
+
+    [Fact]
+    public async Task The_periodic_recheck_catches_a_revocation_whose_message_was_missed()
+    {
+        var programId = await BoardAsync();
+
+        await using var member = await HubAsync(_memberId);
+        var memberHeard = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        member.On<Guid, Guid>("threadChanged", (_, _) => memberHeard.TrySetResult());
+        await member.InvokeAsync("JoinBoard", programId, Ct);
+
+        await using var trainer = await HubAsync(_trainerId, "trainer");
+        var trainerHeard = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        trainer.On<Guid, Guid>("threadChanged", (_, _) => trainerHeard.TrySetResult());
+        await trainer.InvokeAsync("JoinBoard", programId, Ct);
+
+        // Access ends, but no revocation message reaches this instance (as if Redis dropped it).
+        await factory.WithDbAsync<SubscriptionsDbContext, int>(db => db.Enrollments
+            .Where(e => e.UserId == _memberId && e.ProgramId == programId)
+            .ExecuteUpdateAsync(s => s.SetProperty(e => e.Status, GymHub.Modules.Subscriptions.Domain.EnrollmentStatus.Cancelled), Ct));
+
+        await factory.Services.GetRequiredService<GymHub.Modules.Discussions.Realtime.BoardAccessRevocations>().RecheckAllAsync();
+
+        await StartAsync(Trainer, programId, "General", "After the recheck");
+
         await trainerHeard.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct);
         await Task.Delay(TimeSpan.FromMilliseconds(500), Ct);
         Assert.False(memberHeard.Task.IsCompleted);

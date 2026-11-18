@@ -45,6 +45,14 @@ var mediaStore = builder.AddContainer("media-store", "rustfs/rustfs", "1.0.4")
 var media = builder.AddConnectionString("media", ReferenceExpression.Create(
     $"Endpoint={mediaStore.GetEndpoint("s3")};AccessKey={mediaAccessKey};SecretKey={mediaSecretKey}"));
 
+// Lets several API instances work together: the SignalR backplane and instance messages. Without it each instance
+// keeps these to itself.
+var redis = builder.AddRedis("redis");
+
+// The Gateway's own Redis: sessions (users' tokens) and Data Protection keys. Separate from the API's so an API
+// instance never holds credentials to it.
+var gatewayRedis = builder.AddRedis("gateway-redis");
+
 var migrations = builder.AddProject<Projects.GymHub_MigrationService>("gymhub-migrations")
     .WithReference(gymhubDb)
     .WaitFor(gymhubDb);
@@ -53,17 +61,21 @@ var api = builder.AddProject<Projects.GymHub_Api>("gymhub-api")
     .WithReference(gymhubDb)
     .WithReference(keycloak)
     .WithReference(media)
+    .WithReference(redis)
     .WithEnvironment("KeycloakAdmin__ClientSecret", apiAdminClientSecret)
     .WithEnvironment("Notifications__Smtp__Host", mailpit.GetEndpoint("smtp").Property(EndpointProperty.Host))
     .WithEnvironment("Notifications__Smtp__Port", mailpit.GetEndpoint("smtp").Property(EndpointProperty.Port))
     .WithEnvironment("Notifications__EmailUnverifiedAddresses", "true")
     .WaitFor(mailpit)
     .WaitFor(mediaStore)
+    .WaitFor(redis)
     .WaitForCompletion(migrations);
 
 var gateway = builder.AddProject<Projects.Gateway>("gateway")
     .WithReference(api)
     .WithReference(keycloak)
+    .WithReference(gatewayRedis)
+    .WaitFor(gatewayRedis)
     .WithEnvironment("OpenIdConnect__ClientSecret", bffClientSecret)
     // The CSP lets the browser load and upload media from storage (presigned URLs).
     .WithEnvironment("Gateway__Csp__MediaOrigins__0", mediaStore.GetEndpoint("s3"))

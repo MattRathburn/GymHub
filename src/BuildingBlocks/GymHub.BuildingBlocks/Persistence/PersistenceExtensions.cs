@@ -1,7 +1,9 @@
+using GymHub.BuildingBlocks.Jobs;
 using GymHub.BuildingBlocks.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
 namespace GymHub.BuildingBlocks.Persistence;
@@ -24,6 +26,7 @@ public static class PersistenceExtensions
         });
 
         builder.Services.AddSingleton(new ModuleDbContextRegistration(typeof(TContext)));
+        builder.Services.TryAddSingleton<ISingletonJobLock, PostgresJobLock>();
 
         return builder;
     }
