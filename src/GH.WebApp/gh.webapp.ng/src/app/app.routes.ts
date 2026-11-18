@@ -42,6 +42,12 @@ export const appRoutes: Route[] = [
     loadComponent: () => import('./features/trainers/member-profile.component').then((m) => m.MemberProfileComponent),
   },
   {
+    path: 'me/account',
+    title: 'GymHub · Account',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/account/account.component').then((m) => m.AccountComponent),
+  },
+  {
     path: 'me/notifications',
     title: 'GymHub · Notifications',
     canActivate: [authGuard],
@@ -159,5 +165,19 @@ export const appRoutes: Route[] = [
     canActivate: [adminGuard],
     loadComponent: () => import('./features/billing/admin/purchases.component').then((m) => m.PurchasesComponent),
   },
-  { path: '**', redirectTo: '' },
+  {
+    path: 'terms',
+    title: 'GymHub · Terms',
+    loadComponent: () => import('./features/legal/terms.component').then((m) => m.TermsComponent),
+  },
+  {
+    path: 'privacy',
+    title: 'GymHub · Privacy',
+    loadComponent: () => import('./features/legal/privacy.component').then((m) => m.PrivacyComponent),
+  },
+  {
+    path: '**',
+    title: 'GymHub · Not found',
+    loadComponent: () => import('./features/home/not-found.component').then((m) => m.NotFoundComponent),
+  },
 ];

@@ -20,6 +20,7 @@ Welcome to the **Gym Hub**! Trainers build workout programs and grow a following
 - Training log: log program or freestyle workouts, with history, per-exercise progress charts, personal records and program progress
 - Notifications: an in-app inbox with a live unread count, emails, and per-type settings
 - Reviews: members with access rate programs 1 to 5 stars, the trainer replies, admins hide reported reviews, and ratings show in the catalog
+- Accounts: sign-up with email verification, a data export, and account deletion after a 7-day grace period; terms and privacy pages
 
 ## Technologies
 - **.NET 10** with ASP.NET Core Minimal APIs
@@ -34,7 +35,7 @@ Welcome to the **Gym Hub**! Trainers build workout programs and grow a following
 ## Architecture
 GymHub is a **modular monolith with vertical slices**:
 
-- `GymHub.Api` hosts independent modules (currently **Programs**, **Subscriptions**, **Trainers**, **Discussions**, **Billing**, **Notifications** and **Training Log**). Each module owns its data in its own Postgres schema and exposes only a `.Contracts` project to other modules.
+- `GymHub.Api` hosts independent modules (currently **Programs**, **Subscriptions**, **Trainers**, **Discussions**, **Billing**, **Notifications**, **Training Log**, **Reviews** and **Accounts**). Each module owns its data in its own Postgres schema and exposes only a `.Contracts` project to other modules.
 - Inside a module, each feature is a vertical slice: endpoint, request/response, validation and handler together.
 - Modules talk through contract interfaces for reads and through integration events delivered in-process from a transactional outbox.
 - The **Gateway** is a BFF. It signs users in with Keycloak, keeps tokens on the server, serves the Angular app on the same origin, and forwards `/gh-api/**` calls to the API with the user's access token and XSRF protection.
@@ -91,3 +92,5 @@ The bell in the nav shows notifications live: new weeks, replies, new threads fo
 Members log workouts under **Training log**, or with **Log workout** next to a released workout on a program page (pre-filled with the planned sets). Each exercise gets a progress chart and a list of personal records, and the program page shows how many released workouts you've logged.
 
 Members with access review a program at the bottom of its page; the rating shows on catalog cards and the program page. The trainer replies under each review, anyone signed in can report one, and admins hide reported reviews from the **Reviews** tab under **Reports**.
+
+Anyone can create an account with **Sign up**; Keycloak sends the verification email to Mailpit. Under **Account** (in the footer, or from your profile) members download their data or delete their account. Deletion waits 7 days, and a banner offers **Keep my account** until then.

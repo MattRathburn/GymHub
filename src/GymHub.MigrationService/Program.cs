@@ -1,5 +1,6 @@
 using GymHub.BuildingBlocks.Persistence;
 using GymHub.MigrationService;
+using GymHub.Modules.Accounts.Data;
 using GymHub.Modules.Billing.Data;
 using GymHub.Modules.Discussions.Data;
 using GymHub.Modules.Notifications.Data;
@@ -22,6 +23,7 @@ builder.AddModuleDbContext<BillingDbContext>(BillingDbContext.SchemaName);
 builder.AddModuleDbContext<NotificationsDbContext>(NotificationsDbContext.SchemaName);
 builder.AddModuleDbContext<TrainingLogDbContext>(TrainingLogDbContext.SchemaName);
 builder.AddModuleDbContext<ReviewsDbContext>(ReviewsDbContext.SchemaName);
+builder.AddModuleDbContext<AccountsDbContext>(AccountsDbContext.SchemaName);
 
 builder.Services.AddHostedService<MigrationWorker>();
 

@@ -2,6 +2,7 @@ using FluentValidation;
 using GymHub.BuildingBlocks.Modules;
 using GymHub.BuildingBlocks.Outbox;
 using GymHub.BuildingBlocks.Persistence;
+using GymHub.BuildingBlocks.Privacy;
 using GymHub.Modules.Programs.Contracts;
 using GymHub.Modules.Programs.Data;
 using GymHub.Modules.Programs.Features.ArchiveProgram;
@@ -33,6 +34,7 @@ public sealed class ProgramsModule : IModule
     public void AddServices(IHostApplicationBuilder builder)
     {
         builder.AddModuleDbContext<ProgramsDbContext>(ProgramsDbContext.SchemaName);
+        builder.Services.AddPersonalDataSource<ProgramsPersonalData>();
 
         var services = builder.Services;
         services.AddValidatorsFromAssemblyContaining<ProgramsModule>(includeInternalTypes: true);

@@ -70,6 +70,18 @@ internal sealed class StripeGateway(IOptions<BillingOptions> options) : IStripeG
         return customer.Id;
     }
 
+    public async Task DeleteCustomerAsync(string customerId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await new CustomerService(_client).DeleteAsync(customerId, cancellationToken: cancellationToken);
+        }
+        catch (StripeException ex) when (ex.StripeError?.Code == "resource_missing")
+        {
+            // Already deleted.
+        }
+    }
+
     public async Task<string> CreateProductAsync(Guid programId, string title, CancellationToken cancellationToken)
     {
         var product = await new ProductService(_client).CreateAsync(new ProductCreateOptions

@@ -1,3 +1,4 @@
+using GymHub.BuildingBlocks.Privacy;
 using GymHub.Modules.Notifications.Data;
 using GymHub.Modules.Notifications.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -19,11 +20,13 @@ public interface IUnreadNotifier
 /// the event) is never notified, and drafts already delivered are skipped, so event handlers stay idempotent.
 /// </summary>
 internal sealed class NotificationPublisher(
-    NotificationsDbContext db, IUnreadNotifier notifier, IOptions<NotificationsOptions> options, TimeProvider timeProvider)
+    NotificationsDbContext db, IUnreadNotifier notifier, IOptions<NotificationsOptions> options, TimeProvider timeProvider,
+    IDeletedAccounts deletedAccounts)
 {
     private const int BatchSize = 500;
 
-    public async Task PublishAsync(IEnumerable<NotificationDraft> drafts, string? actorId = null)
+    /// <param name="actorName">The actor's name as the drafts start with it, so it can be removed if they delete their account.</param>
+    public async Task PublishAsync(IEnumerable<NotificationDraft> drafts, string? actorId = null, string? actorName = null)
     {
         var pending = drafts
             .Where(d => d.UserId != actorId && !string.IsNullOrEmpty(d.UserId))
@@ -34,7 +37,7 @@ internal sealed class NotificationPublisher(
 
         foreach (var batch in pending.Chunk(BatchSize))
         {
-            shownTo.UnionWith(await PublishBatchAsync(batch));
+            shownTo.UnionWith(await PublishBatchAsync(batch, actorId, actorName));
         }
 
         if (shownTo.Count > 0)
@@ -43,8 +46,12 @@ internal sealed class NotificationPublisher(
         }
     }
 
-    private async Task<IEnumerable<string>> PublishBatchAsync(NotificationDraft[] batch)
+    private async Task<IEnumerable<string>> PublishBatchAsync(NotificationDraft[] batch, string? actorId, string? actorName)
     {
+        // Late events (a subscription ending, a payment) can still name a deleted account; store nothing for it.
+        var deleted = await deletedAccounts.FindDeletedAsync([.. batch.Select(d => d.UserId).Distinct()], CancellationToken.None);
+        batch = [.. batch.Where(d => !deleted.Contains(d.UserId))];
+
         var userIds = batch.Select(d => d.UserId).Distinct().ToList();
         var keys = batch.Select(d => d.DedupeKey).Distinct().ToList();
 
@@ -72,7 +79,7 @@ internal sealed class NotificationPublisher(
                 continue;
             }
 
-            var notification = new Notification(draft.UserId, draft.Type, draft.Title, draft.Body, draft.Link, draft.DedupeKey, inApp, now);
+            var notification = new Notification(draft.UserId, draft.Type, draft.Title, draft.Body, draft.Link, draft.DedupeKey, inApp, now, actorId, actorName);
             db.Notifications.Add(notification);
 
             if (inApp)

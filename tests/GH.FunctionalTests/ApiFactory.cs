@@ -3,9 +3,11 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using EventBus.Abstractions;
+using GymHub.BuildingBlocks.Identity;
 using GymHub.BuildingBlocks.Outbox;
 using GymHub.BuildingBlocks.Persistence;
 using GymHub.BuildingBlocks.Storage;
+using GymHub.Modules.Accounts.Data;
 using GymHub.Modules.Billing.Data;
 using GymHub.Modules.Billing.Domain;
 using GymHub.Modules.Billing.Payments;
@@ -17,7 +19,6 @@ using GymHub.Modules.Programs.Data;
 using GymHub.Modules.Reviews.Data;
 using GymHub.Modules.Subscriptions.Data;
 using GymHub.Modules.Trainers.Data;
-using GymHub.Modules.Trainers.Identity;
 using GymHub.Modules.TrainingLog.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
@@ -64,6 +65,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await scope.ServiceProvider.GetRequiredService<NotificationsDbContext>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<TrainingLogDbContext>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<ReviewsDbContext>().Database.MigrateAsync();
+        await scope.ServiceProvider.GetRequiredService<AccountsDbContext>().Database.MigrateAsync();
     }
 
     /// <summary>Delivers one event straight to one handler, as the outbox dispatcher would.</summary>
@@ -215,12 +217,30 @@ public sealed class FakeObjectStorage : IObjectStorage
     public Uri CreateDownloadUrl(string objectKey, TimeSpan lifetime) => new($"http://storage.test/{objectKey}");
 
     public Task<bool> ExistsAsync(string objectKey, CancellationToken cancellationToken) => Task.FromResult(Objects.ContainsKey(objectKey));
+
+    public Task DeletePrefixAsync(string prefix, CancellationToken cancellationToken)
+    {
+        foreach (var key in Objects.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)))
+        {
+            Objects.TryRemove(key, out _);
+        }
+
+        return Task.CompletedTask;
+    }
 }
 
-/// <summary>Records role grants instead of calling Keycloak.</summary>
+/// <summary>Records role grants and user deletions instead of calling Keycloak.</summary>
 internal sealed class FakeIdentityAdmin : IIdentityAdmin
 {
     public ConcurrentBag<(string UserId, string Role)> Grants { get; } = [];
+
+    public ConcurrentBag<string> DeletedUsers { get; } = [];
+
+    public Task DeleteUserAsync(string userId, CancellationToken cancellationToken)
+    {
+        DeletedUsers.Add(userId);
+        return Task.CompletedTask;
+    }
 
     public Task GrantRealmRoleAsync(string userId, string role, CancellationToken cancellationToken)
     {

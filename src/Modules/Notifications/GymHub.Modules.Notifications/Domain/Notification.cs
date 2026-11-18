@@ -11,10 +11,14 @@ public sealed class Notification
 
     private Notification() { }
 
-    public Notification(string userId, NotificationType type, string title, string body, string link, string dedupeKey, bool showInApp, DateTime now)
+    public Notification(
+        string userId, NotificationType type, string title, string body, string link, string dedupeKey, bool showInApp, DateTime now,
+        string? actorId = null, string? actorName = null)
     {
         Id = Guid.CreateVersion7();
         UserId = userId;
+        ActorId = actorId;
+        ActorName = actorName is null ? null : Truncate(actorName, MaxTitleLength);
         Type = type;
         Title = Truncate(title, MaxTitleLength);
         Body = Truncate(body, MaxBodyLength);
@@ -38,9 +42,31 @@ public sealed class Notification
     public DateTime CreatedAt { get; private set; }
     public DateTime? ReadAt { get; private set; }
 
+    /// <summary>Who caused it, when someone did. Kept so the actor's name can be removed if they delete their account.</summary>
+    public string? ActorId { get; private set; }
+
+    /// <summary>The actor's name as written at the start of the title or body.</summary>
+    public string? ActorName { get; private set; }
+
     public bool IsRead => ReadAt is not null;
 
     public void MarkRead(DateTime now) => ReadAt ??= now;
+
+    /// <summary>The actor deleted their account: their name, where it leads the title or body, becomes "Deleted user".</summary>
+    public void ForgetActor(string replacement)
+    {
+        if (!string.IsNullOrEmpty(ActorName))
+        {
+            Title = Truncate(ReplaceLeading(Title, ActorName, replacement), MaxTitleLength);
+            Body = Truncate(ReplaceLeading(Body, ActorName, replacement), MaxBodyLength);
+        }
+
+        ActorId = null;
+        ActorName = null;
+    }
+
+    private static string ReplaceLeading(string text, string name, string replacement) =>
+        text.StartsWith(name, StringComparison.Ordinal) ? replacement + text[name.Length..] : text;
 
     private static string Truncate(string value, int max) => value.Length <= max ? value : value[..(max - 1)] + "…";
 }
@@ -139,6 +165,14 @@ public sealed class EmailMessage
     public DateTime NextAttemptAt { get; private set; }
     public DateTime? SentAt { get; private set; }
     public string? LastError { get; private set; }
+
+    /// <summary>Replaces the content after its notification changed (a deleted actor's name removed).</summary>
+    public void Rewrite(string subject, string textBody, string htmlBody)
+    {
+        Subject = subject;
+        TextBody = textBody;
+        HtmlBody = htmlBody;
+    }
 
     public void MarkSent(DateTime now)
     {

@@ -38,6 +38,14 @@ internal sealed class FakeStripeGateway : IStripeGateway
 
     public Task<string> CreateCustomerAsync(string userId, string? email, CancellationToken cancellationToken) => Task.FromResult(NewId("cus"));
 
+    public ConcurrentQueue<string> DeletedCustomers { get; } = new();
+
+    public Task DeleteCustomerAsync(string customerId, CancellationToken cancellationToken)
+    {
+        DeletedCustomers.Enqueue(customerId);
+        return Task.CompletedTask;
+    }
+
     public Task<string> CreateProductAsync(Guid programId, string title, CancellationToken cancellationToken) => Task.FromResult(NewId("prod"));
 
     public Task<string> CreatePriceAsync(string productId, Guid programId, int priceVersion, ProgramPrice price, CancellationToken cancellationToken) =>

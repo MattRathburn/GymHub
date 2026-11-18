@@ -121,6 +121,14 @@ namespace GymHub.Modules.Notifications.Data.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ActorId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ActorName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -161,6 +169,8 @@ namespace GymHub.Modules.Notifications.Data.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
 
                     b.HasIndex("CreatedAt");
 

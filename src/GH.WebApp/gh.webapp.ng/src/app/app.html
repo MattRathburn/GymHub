@@ -29,13 +29,29 @@
           <a routerLink="/me/profile" routerLinkActive="text-indigo-700" class="text-sm text-slate-600 hover:text-slate-900">{{ user.name }}</a>
           <button class="btn-secondary" (click)="auth.logout()">Sign out</button>
         } @else {
-          <button class="btn-primary" (click)="auth.login()">Sign in</button>
+          <button class="btn-secondary" (click)="auth.login()">Sign in</button>
+          <button class="btn-primary" (click)="auth.signup()">Sign up</button>
         }
       }
     </div>
   </nav>
 </header>
 
-<main>
+<app-deletion-banner />
+
+<main class="min-h-[60vh]">
   <router-outlet />
 </main>
+
+<footer class="mt-16 border-t border-slate-200 bg-white">
+  <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-6 text-sm text-slate-500">
+    <span>© {{ year }} GymHub</span>
+    <a routerLink="/programs" class="hover:text-slate-900">Programs</a>
+    <a routerLink="/trainers" class="hover:text-slate-900">Trainers</a>
+    <a routerLink="/terms" class="hover:text-slate-900">Terms</a>
+    <a routerLink="/privacy" class="hover:text-slate-900">Privacy</a>
+    @if (auth.isAuthenticated()) {
+      <a routerLink="/me/account" class="hover:text-slate-900">Account</a>
+    }
+  </div>
+</footer>

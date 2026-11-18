@@ -132,6 +132,29 @@ public static class GatewaySetup
                 return Task.FromResult(0);
             };
 
+            // "/signup" asks Keycloak for its registration form instead of the login form (OIDC prompt=create).
+            options.Events.OnRedirectToIdentityProvider = (context) =>
+            {
+                if (context.Properties.Items.TryGetValue(GatewayEndpoints.PromptItem, out var prompt))
+                {
+                    context.ProtocolMessage.Prompt = prompt;
+                }
+
+                return Task.CompletedTask;
+            };
+
+            // Keycloak ignores a prompt sent through a pushed authorization request (PAR), so sign-up skips PAR and
+            // sends its parameters in the redirect instead. Login keeps using PAR.
+            options.Events.OnPushAuthorization = (context) =>
+            {
+                if (context.Properties.Items.ContainsKey(GatewayEndpoints.PromptItem))
+                {
+                    context.SkipPush();
+                }
+
+                return Task.CompletedTask;
+            };
+
             options.Events.OnRedirectToIdentityProviderForSignOut = (context) =>
             {
                 LogoutHandler.HandleLogout(context, config);

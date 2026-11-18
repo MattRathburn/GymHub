@@ -342,7 +342,10 @@ public sealed class TrainingProgram
     }
 
     /// <summary>Object keys for this program's media all start with this prefix.</summary>
-    public string MediaKeyPrefix => $"programs/{Id:N}/";
+    public string MediaKeyPrefix => MediaKeyPrefixFor(Id);
+
+    /// <summary>Uploads for a program live under this prefix.</summary>
+    public static string MediaKeyPrefixFor(Guid programId) => $"programs/{programId:N}/";
 
     public Result Publish(DateTime now)
     {

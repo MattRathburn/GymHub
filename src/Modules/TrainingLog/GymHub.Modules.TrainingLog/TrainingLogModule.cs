@@ -1,6 +1,7 @@
 using FluentValidation;
 using GymHub.BuildingBlocks.Modules;
 using GymHub.BuildingBlocks.Persistence;
+using GymHub.BuildingBlocks.Privacy;
 using GymHub.Modules.TrainingLog.Data;
 using GymHub.Modules.TrainingLog.Features.BrowseSessions;
 using GymHub.Modules.TrainingLog.Features.EditSession;
@@ -25,6 +26,7 @@ public sealed class TrainingLogModule : IModule
     public void AddServices(IHostApplicationBuilder builder)
     {
         builder.AddModuleDbContext<TrainingLogDbContext>(TrainingLogDbContext.SchemaName);
+        builder.Services.AddPersonalDataSource<TrainingLogPersonalData>();
 
         var services = builder.Services;
         services.AddValidatorsFromAssemblyContaining<TrainingLogModule>(includeInternalTypes: true);

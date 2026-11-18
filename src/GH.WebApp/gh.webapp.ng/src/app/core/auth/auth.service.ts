@@ -33,6 +33,11 @@ export class AuthService {
     globalThis.location.href = `${environment.bffBaseUrl}/login?redirectUrl=${encodeURIComponent(returnUrl)}`;
   }
 
+  /** Keycloak's registration form; afterwards the member is signed in like after login. */
+  signup(returnUrl = globalThis.location.pathname + globalThis.location.search): void {
+    globalThis.location.href = `${environment.bffBaseUrl}/signup?redirectUrl=${encodeURIComponent(returnUrl)}`;
+  }
+
   logout(): void {
     globalThis.location.href = `${environment.bffBaseUrl}/logout?redirectUrl=${encodeURIComponent('/')}`;
   }

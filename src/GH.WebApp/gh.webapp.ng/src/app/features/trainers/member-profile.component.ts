@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { problemMessage } from '../../core/http/problem';
@@ -10,11 +11,15 @@ import { TrainersService } from './trainers.service';
 /** Any user sets the name and avatar shown next to their discussion posts. */
 @Component({
   selector: 'app-member-profile',
+  imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto max-w-xl px-4 py-8">
       <h1 class="text-2xl font-semibold">Your profile</h1>
-      <p class="mt-1 text-sm text-slate-600">This is how you appear on program discussion boards.</p>
+      <p class="mt-1 text-sm text-slate-600">
+        This is how you appear on program discussion boards. To download your data or delete your account, go to
+        <a routerLink="/me/account" class="text-indigo-600 underline">Account</a>.
+      </p>
       @if (auth.isTrainer()) {
         <p class="mt-2 text-sm text-slate-500">As a trainer, your trainer profile name is shown instead.</p>
       }

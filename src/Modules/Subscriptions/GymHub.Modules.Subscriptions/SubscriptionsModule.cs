@@ -1,7 +1,8 @@
 using GymHub.BuildingBlocks.Modules;
 using GymHub.BuildingBlocks.Outbox;
-using GymHub.Modules.Billing.Contracts;
 using GymHub.BuildingBlocks.Persistence;
+using GymHub.BuildingBlocks.Privacy;
+using GymHub.Modules.Billing.Contracts;
 using GymHub.Modules.Subscriptions.Contracts;
 using GymHub.Modules.Subscriptions.Data;
 using GymHub.Modules.Subscriptions.Features.Enroll;
@@ -20,6 +21,7 @@ public sealed class SubscriptionsModule : IModule
     public void AddServices(IHostApplicationBuilder builder)
     {
         builder.AddModuleDbContext<SubscriptionsDbContext>(SubscriptionsDbContext.SchemaName);
+        builder.Services.AddPersonalDataSource<SubscriptionsPersonalData>();
 
         builder.Services.AddScoped<IEntitlements, Entitlements>();
         builder.Services.AddScoped<IProgramMembers, ProgramMembers>();
