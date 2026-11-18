@@ -2,6 +2,7 @@ using FluentValidation;
 using GymHub.BuildingBlocks.Modules;
 using GymHub.BuildingBlocks.Outbox;
 using GymHub.BuildingBlocks.Persistence;
+using GymHub.BuildingBlocks.Privacy;
 using GymHub.Modules.Discussions.Data;
 using GymHub.Modules.Discussions.Features.GetThread;
 using GymHub.Modules.Discussions.Features.ListThreads;
@@ -34,6 +35,7 @@ public sealed class DiscussionsModule : IModule
     public void AddServices(IHostApplicationBuilder builder)
     {
         builder.AddModuleDbContext<DiscussionsDbContext>(DiscussionsDbContext.SchemaName);
+        builder.Services.AddPersonalDataSource<DiscussionsPersonalData>();
 
         var services = builder.Services;
         services.AddValidatorsFromAssemblyContaining<DiscussionsModule>(includeInternalTypes: true);

@@ -61,6 +61,9 @@ public interface IStripeGateway
 
     Task<string> CreateCustomerAsync(string userId, string? email, CancellationToken cancellationToken);
 
+    /// <summary>Deletes the customer and its saved payment methods; Stripe also cancels its subscriptions. A customer already gone is fine.</summary>
+    Task DeleteCustomerAsync(string customerId, CancellationToken cancellationToken);
+
     Task<string> CreateProductAsync(Guid programId, string title, CancellationToken cancellationToken);
 
     Task<string> CreatePriceAsync(string productId, Guid programId, int priceVersion, ProgramPrice price, CancellationToken cancellationToken);

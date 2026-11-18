@@ -1,7 +1,9 @@
 using FluentValidation;
+using GymHub.BuildingBlocks.Identity;
 using GymHub.BuildingBlocks.Modules;
 using GymHub.BuildingBlocks.Outbox;
 using GymHub.BuildingBlocks.Persistence;
+using GymHub.BuildingBlocks.Privacy;
 using GymHub.Modules.Trainers.Contracts;
 using GymHub.Modules.Trainers.Data;
 using GymHub.Modules.Trainers.Features.EditMyMemberProfile;
@@ -16,7 +18,6 @@ using GymHub.Modules.Trainers.Identity;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 
 namespace GymHub.Modules.Trainers;
 
@@ -28,13 +29,12 @@ public sealed class TrainersModule : IModule
     public void AddServices(IHostApplicationBuilder builder)
     {
         builder.AddModuleDbContext<TrainersDbContext>(TrainersDbContext.SchemaName);
+        builder.Services.AddPersonalDataSource<TrainersPersonalData>();
 
         var services = builder.Services;
         services.AddValidatorsFromAssemblyContaining<TrainersModule>(includeInternalTypes: true);
 
-        services.Configure<KeycloakAdminOptions>(builder.Configuration.GetSection(KeycloakAdminOptions.SectionName));
-        services.AddHttpClient<IIdentityAdmin, KeycloakIdentityAdmin>((sp, http) =>
-            http.BaseAddress = sp.GetRequiredService<IOptions<KeycloakAdminOptions>>().Value.BaseAddress);
+        builder.AddIdentityAdmin();
         services.AddIntegrationEventHandler<TrainerApproved, GrantTrainerRoleHandler>();
         services.AddScoped<ProfileDirectory>();
         services.AddScoped<IProfileDirectory>(sp => sp.GetRequiredService<ProfileDirectory>());

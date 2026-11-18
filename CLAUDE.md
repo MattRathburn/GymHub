@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 GymHub is a workout-program platform: trainers (approved by an admin) publish programs, users subscribe or buy them, and each program gets a subscriber-only discussion board. It is a **modular monolith with vertical slices** on .NET 10 + Aspire, with a YARP **BFF** (`Gateway`), **Keycloak** auth, PostgreSQL, S3-compatible media storage, and an Angular 21 frontend.
 
-Built so far: the foundation and the **Programs**, **Subscriptions**, **Trainers** (applications, profiles, follows, member profiles), **Discussions**, **Billing** (Stripe Connect), **Notifications**, **Training Log** and **Reviews** modules. The road to an MVP is `docs/plans/mvp-roadmap.md`; plans live in `docs/plans/`.
+Built so far: the foundation and the **Programs**, **Subscriptions**, **Trainers** (applications, profiles, follows, member profiles), **Discussions**, **Billing** (Stripe Connect), **Notifications**, **Training Log**, **Reviews** and **Accounts** (data export, account deletion) modules. The road to an MVP is `docs/plans/mvp-roadmap.md`; plans live in `docs/plans/`.
 
 The root `README.md` is partly stale; trust the code, `GymHub.AppHost/Program.cs` and `.github/instructions/` over it.
 
@@ -39,7 +39,7 @@ AppHost user-secrets must hold `Parameters:bff-client-secret`, `Parameters:api-a
 
 Stripe is optional: with `Parameters:stripe-secret-key` (an `sk_test_` key) and `Parameters:stripe-webhook-secret` (the `whsec_` value from `stripe listen --forward-to https://localhost:7179/stripe/webhook`) set, the AppHost passes them to the API as `Billing__*`. Without them the app runs and paid features answer "Payments aren't configured". Never commit these keys.
 
-Notification emails go to a **Mailpit** container (web UI linked from the Aspire dashboard); no secrets needed.
+Notification emails go to a **Mailpit** container (web UI linked from the Aspire dashboard); no secrets needed. Keycloak sends its sign-up verification and password-reset emails there too (realm `smtpServer`, host and port injected by the AppHost).
 
 `src/GymHub.AppHost/Realms/GH-Test-Realm-realm.json` seeds users `member`, `trainer` and `admin` with dev passwords. The file name must be `<realm>-realm.json`. Keycloak imports it only into an empty data volume (`IGNORE_EXISTING`), and Aspire copies it into that volume, so realm changes need a fresh volume.
 
@@ -48,7 +48,7 @@ Notification emails go to a **Mailpit** container (web UI linked from the Aspire
 **Request flow:** Browser → `Gateway` (same origin) → `GymHub.Api`.
 - The Gateway serves the SPA (catch-all YARP route to the Angular dev server) and does OIDC code + PKCE login with Keycloak. It keeps tokens in server-side session; the browser holds only a cookie.
 - `/gh-api/**` is proxied to `gymhub-api` with the prefix stripped. `GatewayService.AddToken` attaches the bearer token, and `XsrfMiddleware` requires `X-XSRF-TOKEN` (echoed from the `XSRF-TOKEN` cookie). Both match on `Apis[].ApiPath` in `Gateway/appsettings.json`, which must equal the route prefix.
-- Gateway endpoints: `/login`, `/logout`, `/api/user` (the SPA's source of identity and roles).
+- Gateway endpoints: `/login`, `/signup` (OIDC `prompt=create`, sent without PAR because Keycloak ignores a pushed prompt), `/logout`, `/api/user` (the SPA's source of identity and roles).
 - Keycloak is pinned to `KC_HOSTNAME=http://localhost:8080`, so the issuer matches for the Gateway (direct) and the API (service discovery).
 
 **Module host:** `GymHub.Api/Program.cs` keeps an explicit `IModule[]` list. Each module registers services and maps endpoints under `/api/v1/{module.Name}`. The JWT bearer uses audience `gymhub-api`, `RoleClaimType = "roles"`, and policies `Policies.Trainer` / `Policies.Admin`.
@@ -109,6 +109,12 @@ Notification emails go to a **Mailpit** container (web UI linked from the Aspire
 - Reports work like Discussions' (`ReviewReport`); admins handle them in the "Reviews" tab of `/admin/reports`, and acting hides the review.
 - Every change that moves a rating runs through `RatingWriter`: a per-program advisory lock, then `ProgramRating` (count, sum of visible reviews, version) is recomputed and `ProgramRatingChanged` raised. Programs keeps a copy (`RatingCount`, `RatingSum`, `RatingVersion` on `TrainingProgram`) with a version-guarded `ExecuteUpdate`, so cards and the overview carry `Rating` and 2b can sort by it in SQL.
 - `ReviewPosted` (first write only) notifies the trainer (`NotificationType.ReviewPosted`); links end in `#reviews`, which the program page scrolls to.
+
+**Accounts module** (route prefix `account`, schema `accounts`):
+- Every module that stores user data registers an `IPersonalDataSource` (BuildingBlocks `Privacy`): its export section, an optional deletion blocker and an idempotent `EraseAsync`. New user data needs a source, or the export and deletion miss it.
+- `GET /account/export` downloads every section as JSON. `POST /account/deletion` (typed phrase) schedules deletion 7 days out; `DELETE` cancels. Blockers: a subscription still renewing (Billing), published programs (Programs).
+- `AccountDeletionJob` (hourly) re-checks blockers, calls every `EraseAsync`, then deletes the Keycloak user (`IIdentityAdmin`, BuildingBlocks `Identity`, shared with Trainers' role grant) and marks the row completed, all under a row lock (`FOR UPDATE`) so a cancel can't slip in mid-way. Posts and reviews stay with author name "Deleted user"; purchases and archived programs stay, drafts and their media are deleted. Billing closes open checkouts and deletes the Stripe customer; Subscriptions raises `EnrollmentCancelled` for each active enrollment it removes. Export section names must be unique (a test checks).
+- After that, `IDeletedAccounts` keeps the user gone: `UseDeletedAccountGuard` answers 401 to their still-valid token, and `NotificationPublisher` drops drafts for them. Notifications record `ActorId`/`ActorName`, so erasure turns "Alex replied…" in other people's inboxes into "Deleted user replied…"; pass `actorName` when a notification starts with the actor's name.
 
 **Other projects:** `GymHub.MigrationService` migrates every module and then exits; the API `WaitForCompletion`s it.
 

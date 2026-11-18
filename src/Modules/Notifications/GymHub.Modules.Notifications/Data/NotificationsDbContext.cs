@@ -30,6 +30,9 @@ public sealed class NotificationsDbContext(DbContextOptions<NotificationsDbConte
             notification.Property(n => n.Body).HasMaxLength(Notification.MaxBodyLength);
             notification.Property(n => n.Link).HasMaxLength(500);
             notification.Property(n => n.DedupeKey).HasMaxLength(200);
+            notification.Property(n => n.ActorId).HasMaxLength(100);
+            notification.Property(n => n.ActorName).HasMaxLength(Notification.MaxTitleLength);
+            notification.HasIndex(n => n.ActorId);
             notification.Ignore(n => n.IsRead);
             notification.HasIndex(n => new { n.UserId, n.DedupeKey }).IsUnique();
             notification.HasIndex(n => new { n.UserId, n.ShowInApp, n.ReadAt, n.CreatedAt });

@@ -1,5 +1,6 @@
 using EventBus.Abstractions;
 using GymHub.BuildingBlocks.Auth;
+using GymHub.BuildingBlocks.Identity;
 using GymHub.Modules.Trainers.Contracts;
 
 namespace GymHub.Modules.Trainers.Identity;

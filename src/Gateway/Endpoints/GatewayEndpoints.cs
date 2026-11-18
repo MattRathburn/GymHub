@@ -19,16 +19,11 @@ public static class GatewayEndpoints
     {
         app.MapGet("/logout", (string? redirectUrl, HttpContext ctx) =>
         {
-            if (string.IsNullOrEmpty(redirectUrl))
-            {
-                redirectUrl = "/";
-            }
-
             ctx.Session.Clear();
 
             var authProps = new AuthenticationProperties
             {
-                RedirectUri = redirectUrl
+                RedirectUri = LocalOrRoot(redirectUrl)
             };
 
             var authSchemes = new string[] {
@@ -43,20 +38,39 @@ public static class GatewayEndpoints
     private static void UseLoginEndpoint(this WebApplication app)
     {
         app.MapGet("/login", (string? redirectUrl) =>
-        {
-
-            if (string.IsNullOrEmpty(redirectUrl))
-            {
-                redirectUrl = "/";
-            }
-
             // Returned (not fire-and-forget) so the redirect to Keycloak is written before the response completes.
-            return Results.Challenge(new AuthenticationProperties
+            Results.Challenge(new AuthenticationProperties
             {
-                RedirectUri = redirectUrl
-            }, [OpenIdConnectDefaults.AuthenticationScheme]);
+                RedirectUri = LocalOrRoot(redirectUrl)
+            }, [OpenIdConnectDefaults.AuthenticationScheme]));
+
+        // Same as /login, but Keycloak opens its registration form.
+        app.MapGet("/signup", (string? redirectUrl) =>
+        {
+            var properties = new AuthenticationProperties
+            {
+                RedirectUri = LocalOrRoot(redirectUrl)
+            };
+            properties.Items[PromptItem] = "create";
+
+            return Results.Challenge(properties, [OpenIdConnectDefaults.AuthenticationScheme]);
         });
     }
+
+    /// <summary>Authentication property carrying the OIDC "prompt" for the Keycloak redirect.</summary>
+    public const string PromptItem = "gymhub.prompt";
+
+    /// <summary>
+    /// Where to return after sign-in, sign-up or sign-out: a path on this site only, so a crafted link can't send the
+    /// user to another site after a real Keycloak page. Same rule as ASP.NET's IsLocalUrl.
+    /// </summary>
+    public static string LocalOrRoot(string? url) => IsLocalUrl(url) ? url! : "/";
+
+    private static bool IsLocalUrl(string? url) =>
+        !string.IsNullOrEmpty(url)
+        && url[0] == '/'
+        && (url.Length == 1 || (url[1] != '/' && url[1] != '\\'))
+        && !url.Any(char.IsControl);
 
     private static void UseUserInfoEndpoint(this WebApplication app)
     {

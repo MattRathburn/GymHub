@@ -69,7 +69,7 @@ internal sealed class TrainerPublishedHandler(NotificationPublisher publisher, N
             $"{trainer} published {@event.Title}",
             "A new program from a trainer you follow.",
             NotificationContext.ProgramLink(@event.ProgramId),
-            $"program-published:{@event.ProgramId}")), actorId: @event.TrainerId);
+            $"program-published:{@event.ProgramId}")), actorId: @event.TrainerId, actorName: trainer);
     }
 }
 
@@ -91,7 +91,7 @@ internal sealed class ThreadStartedHandler(NotificationPublisher publisher, Noti
             $"New thread on {program.Title}",
             $"{author}: \"{@event.Title}\"",
             NotificationContext.ThreadLink(@event.ProgramId, @event.ThreadId),
-            $"thread-started:{@event.ThreadId}")], actorId: @event.AuthorId);
+            $"thread-started:{@event.ThreadId}")], actorId: @event.AuthorId, actorName: author);
     }
 }
 
@@ -109,7 +109,7 @@ internal sealed class ReplyPostedHandler(NotificationPublisher publisher, Notifi
             $"{author} replied to your post",
             $"In the {title} discussion.",
             NotificationContext.ThreadLink(@event.ProgramId, @event.ThreadId),
-            $"reply:{@event.PostId}")], actorId: @event.AuthorId);
+            $"reply:{@event.PostId}")], actorId: @event.AuthorId, actorName: author);
     }
 }
 
@@ -155,7 +155,7 @@ internal sealed class ProgramSoldHandler(NotificationPublisher publisher, Notifi
             @event.IsSubscription ? $"{buyer} subscribed to {title}" : $"{buyer} bought {title}",
             "See your sales on the Payouts page.",
             "/studio/payouts",
-            $"sold:{@event.PurchaseId}")], actorId: @event.UserId);
+            $"sold:{@event.PurchaseId}")], actorId: @event.UserId, actorName: buyer);
     }
 }
 
@@ -176,7 +176,7 @@ internal sealed class FreeEnrollmentHandler(NotificationPublisher publisher, Not
             $"{member} joined {program.Title}",
             "A new member of your free program.",
             NotificationContext.ProgramLink(@event.ProgramId),
-            $"enrolled:{@event.Id}")], actorId: @event.UserId);
+            $"enrolled:{@event.Id}")], actorId: @event.UserId, actorName: member);
     }
 }
 
@@ -195,7 +195,7 @@ internal sealed class ReviewPostedHandler(NotificationPublisher publisher, Notif
             $"They gave it {stars}. You can reply on the program page.",
             $"{NotificationContext.ProgramLink(@event.ProgramId)}#reviews",
             // Per author and program, so deleting and rewriting a review doesn't notify again.
-            $"review-posted:{@event.ProgramId}:{@event.AuthorId}")], actorId: @event.AuthorId);
+            $"review-posted:{@event.ProgramId}:{@event.AuthorId}")], actorId: @event.AuthorId, actorName: reviewer);
     }
 }
 

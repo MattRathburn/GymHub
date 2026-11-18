@@ -1,21 +1,28 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
-namespace GymHub.Modules.Trainers.Identity;
+namespace GymHub.BuildingBlocks.Identity;
 
 /// <summary>Changes to users in the identity provider.</summary>
-internal interface IIdentityAdmin
+public interface IIdentityAdmin
 {
     /// <summary>Adds a realm role to a user. Granting a role the user already has is a no-op.</summary>
     Task GrantRealmRoleAsync(string userId, string role, CancellationToken cancellationToken);
+
+    /// <summary>Deletes the user and their sessions. Deleting a user who is already gone is a no-op.</summary>
+    Task DeleteUserAsync(string userId, CancellationToken cancellationToken);
 }
 
 /// <summary>
 /// Keycloak service-account client used for the Admin REST API. The client and its realm-management roles are
 /// declared in the AppHost realm import; the secret comes from the AppHost "api-admin-client-secret" parameter.
 /// </summary>
-internal sealed class KeycloakAdminOptions
+public sealed class KeycloakAdminOptions
 {
     public const string SectionName = "KeycloakAdmin";
 
@@ -29,11 +36,27 @@ internal sealed class KeycloakAdminOptions
     public string ClientSecret { get; set; } = "";
 }
 
+public static class IdentityAdminExtensions
+{
+    /// <summary>Registers <see cref="IIdentityAdmin"/> once, however many modules ask for it.</summary>
+    public static void AddIdentityAdmin(this IHostApplicationBuilder builder)
+    {
+        if (builder.Services.Any(d => d.ServiceType == typeof(IIdentityAdmin)))
+        {
+            return;
+        }
+
+        builder.Services.Configure<KeycloakAdminOptions>(builder.Configuration.GetSection(KeycloakAdminOptions.SectionName));
+        builder.Services.AddHttpClient<IIdentityAdmin, KeycloakIdentityAdmin>((sp, http) =>
+            http.BaseAddress = sp.GetRequiredService<IOptions<KeycloakAdminOptions>>().Value.BaseAddress);
+    }
+}
+
 /// <summary>
-/// Keycloak Admin REST API over a client-credentials token. A token is fetched per call: grants happen once per
-/// approved trainer, so caching isn't worth the expiry handling.
+/// Keycloak Admin REST API over a client-credentials token. A token is fetched per call: calls are rare (a trainer
+/// approval, an account deletion), so caching isn't worth the expiry handling.
 /// </summary>
-internal sealed class KeycloakIdentityAdmin(HttpClient http, IOptions<KeycloakAdminOptions> options) : IIdentityAdmin
+public sealed class KeycloakIdentityAdmin(HttpClient http, IOptions<KeycloakAdminOptions> options) : IIdentityAdmin
 {
     private readonly KeycloakAdminOptions _options = options.Value;
 
@@ -56,6 +79,21 @@ internal sealed class KeycloakIdentityAdmin(HttpClient http, IOptions<KeycloakAd
         grant.Headers.Authorization = new("Bearer", token);
         using var grantResponse = await http.SendAsync(grant, cancellationToken);
         await EnsureSuccessAsync(grantResponse, $"grant role '{role}' to user {userId}", cancellationToken);
+    }
+
+    public async Task DeleteUserAsync(string userId, CancellationToken cancellationToken)
+    {
+        var token = await GetTokenAsync(cancellationToken);
+
+        using var delete = new HttpRequestMessage(HttpMethod.Delete,
+            $"admin/realms/{Uri.EscapeDataString(_options.Realm)}/users/{Uri.EscapeDataString(userId)}");
+        delete.Headers.Authorization = new("Bearer", token);
+        using var response = await http.SendAsync(delete, cancellationToken);
+
+        if (response.StatusCode != HttpStatusCode.NotFound)
+        {
+            await EnsureSuccessAsync(response, $"delete user {userId}", cancellationToken);
+        }
     }
 
     private async Task<string> GetTokenAsync(CancellationToken cancellationToken)

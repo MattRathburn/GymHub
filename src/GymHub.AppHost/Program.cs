@@ -10,11 +10,19 @@ var bffClientSecret = builder.AddParameter("bff-client-secret", secret: true);
 // Shared by the realm import's gymhub-api-admin service account and the API, which grants the trainer role with it.
 var apiAdminClientSecret = builder.AddParameter("api-admin-client-secret", secret: true);
 
+// Catches every email locally (notifications and Keycloak's verification and password-reset mails); its web UI lists them. No secrets needed.
+var mailpit = builder.AddContainer("mailpit", "axllent/mailpit", "v1.27")
+    .WithEndpoint(targetPort: 1025, name: "smtp")
+    .WithHttpEndpoint(targetPort: 8025, name: "http");
+
 var keycloak = builder.AddKeycloak("keycloak", 8080)
     .WithDataVolume("gymhub-keycloak")
     .WithRealmImport("./Realms")
     .WithEnvironment("GYMHUB_BFF_CLIENT_SECRET", bffClientSecret)
     .WithEnvironment("GYMHUB_API_ADMIN_CLIENT_SECRET", apiAdminClientSecret)
+    // Used by the realm import's smtpServer, so Keycloak sends sign-up verification and password resets to Mailpit.
+    .WithEnvironment("GYMHUB_SMTP_HOST", mailpit.GetEndpoint("smtp").Property(EndpointProperty.Host))
+    .WithEnvironment("GYMHUB_SMTP_PORT", mailpit.GetEndpoint("smtp").Property(EndpointProperty.Port))
     // One issuer for everyone: the browser/Gateway use localhost:8080, the API reaches Keycloak through service discovery.
     .WithEnvironment("KC_HOSTNAME", "http://localhost:8080")
     .WithEnvironment("KC_HOSTNAME_BACKCHANNEL_DYNAMIC", "true");
@@ -38,11 +46,6 @@ var mediaStore = builder.AddContainer("media-store", "rustfs/rustfs", "1.0.4")
 
 var media = builder.AddConnectionString("media", ReferenceExpression.Create(
     $"Endpoint={mediaStore.GetEndpoint("s3")};AccessKey={mediaAccessKey};SecretKey={mediaSecretKey}"));
-
-// Catches every notification email locally; its web UI lists them. No secrets needed.
-var mailpit = builder.AddContainer("mailpit", "axllent/mailpit", "v1.27")
-    .WithEndpoint(targetPort: 1025, name: "smtp")
-    .WithHttpEndpoint(targetPort: 8025, name: "http");
 
 var migrations = builder.AddProject<Projects.GymHub_MigrationService>("gymhub-migrations")
     .WithReference(gymhubDb)

@@ -6,6 +6,13 @@
   "registrationAllowed": true,
   "loginWithEmailAllowed": true,
   "resetPasswordAllowed": true,
+  "verifyEmail": true,
+  "smtpServer": {
+    "host": "${GYMHUB_SMTP_HOST}",
+    "port": "${GYMHUB_SMTP_PORT}",
+    "from": "no-reply@gymhub.local",
+    "fromDisplayName": "GymHub"
+  },
   "roles": {
     "realm": [
       { "name": "trainer", "description": "Approved trainer: can author and publish programs." },

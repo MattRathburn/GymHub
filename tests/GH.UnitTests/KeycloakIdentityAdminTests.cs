@@ -1,9 +1,9 @@
 using System.Net;
 using System.Text;
-using GymHub.Modules.Trainers.Identity;
+using GymHub.BuildingBlocks.Identity;
 using Microsoft.Extensions.Options;
 
-namespace GH.UnitTests.Trainers;
+namespace GH.UnitTests;
 
 public class KeycloakIdentityAdminTests
 {
@@ -12,6 +12,8 @@ public class KeycloakIdentityAdminTests
         public List<(HttpMethod Method, string Path, string? Auth, string Body)> Requests { get; } = [];
 
         public HttpStatusCode GrantStatus { get; set; } = HttpStatusCode.NoContent;
+
+        public HttpStatusCode DeleteStatus { get; set; } = HttpStatusCode.NoContent;
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -24,6 +26,7 @@ public class KeycloakIdentityAdminTests
                 "/realms/GH-Test-Realm/protocol/openid-connect/token" => Json("""{"access_token":"tok","expires_in":60}"""),
                 "/admin/realms/GH-Test-Realm/roles/trainer" => Json("""{"id":"role-id","name":"trainer","composite":false}"""),
                 "/admin/realms/GH-Test-Realm/users/user-1/role-mappings/realm" => new HttpResponseMessage(GrantStatus),
+                "/admin/realms/GH-Test-Realm/users/user-1" when request.Method == HttpMethod.Delete => new HttpResponseMessage(DeleteStatus),
                 _ => new HttpResponseMessage(HttpStatusCode.NotFound)
             };
         }
@@ -69,5 +72,26 @@ public class KeycloakIdentityAdminTests
     {
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             Create(new StubKeycloak(), secret: "").GrantRealmRoleAsync("user-1", "trainer", TestContext.Current.CancellationToken));
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.NoContent)]
+    [InlineData(HttpStatusCode.NotFound)]
+    public async Task Deleting_a_user_succeeds_when_they_are_gone_already(HttpStatusCode status)
+    {
+        var stub = new StubKeycloak { DeleteStatus = status };
+
+        await Create(stub).DeleteUserAsync("user-1", TestContext.Current.CancellationToken);
+
+        Assert.Equal((HttpMethod.Delete, "Bearer tok"), (stub.Requests[1].Method, stub.Requests[1].Auth));
+    }
+
+    [Fact]
+    public async Task Failed_deletes_throw_so_the_job_retries()
+    {
+        var stub = new StubKeycloak { DeleteStatus = HttpStatusCode.Forbidden };
+
+        await Assert.ThrowsAsync<HttpRequestException>(() =>
+            Create(stub).DeleteUserAsync("user-1", TestContext.Current.CancellationToken));
     }
 }

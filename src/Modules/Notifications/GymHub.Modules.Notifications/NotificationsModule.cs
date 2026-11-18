@@ -2,6 +2,7 @@ using FluentValidation;
 using GymHub.BuildingBlocks.Modules;
 using GymHub.BuildingBlocks.Outbox;
 using GymHub.BuildingBlocks.Persistence;
+using GymHub.BuildingBlocks.Privacy;
 using GymHub.Modules.Billing.Contracts;
 using GymHub.Modules.Discussions.Contracts;
 using GymHub.Modules.Notifications.Data;
@@ -36,6 +37,7 @@ public sealed class NotificationsModule : IModule
     public void AddServices(IHostApplicationBuilder builder)
     {
         builder.AddModuleDbContext<NotificationsDbContext>(NotificationsDbContext.SchemaName);
+        builder.Services.AddPersonalDataSource<NotificationsPersonalData>();
 
         var services = builder.Services;
         services.Configure<NotificationsOptions>(builder.Configuration.GetSection(NotificationsOptions.SectionName));

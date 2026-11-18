@@ -20,6 +20,9 @@ public interface IObjectStorage
     Uri CreateDownloadUrl(string objectKey, TimeSpan lifetime);
 
     Task<bool> ExistsAsync(string objectKey, CancellationToken cancellationToken);
+
+    /// <summary>Deletes every object whose key starts with the prefix. Deleting nothing is fine.</summary>
+    Task DeletePrefixAsync(string prefix, CancellationToken cancellationToken);
 }
 
 internal sealed class S3ObjectStorage(IAmazonS3 s3, string bucket, Protocol protocol, TimeProvider timeProvider) : IObjectStorage
@@ -62,6 +65,37 @@ internal sealed class S3ObjectStorage(IAmazonS3 s3, string bucket, Protocol prot
         {
             return false;
         }
+    }
+
+    public async Task DeletePrefixAsync(string prefix, CancellationToken cancellationToken)
+    {
+        var request = new ListObjectsV2Request { BucketName = bucket, Prefix = prefix };
+        ListObjectsV2Response page;
+
+        do
+        {
+            page = await s3.ListObjectsV2Async(request, cancellationToken);
+
+            // A listed page holds at most 1000 keys, which is also DeleteObjects' limit: one request per page.
+            if (page.S3Objects is { Count: > 0 } objects)
+            {
+                var deleted = await s3.DeleteObjectsAsync(new DeleteObjectsRequest
+                {
+                    BucketName = bucket,
+                    Objects = [.. objects.Select(o => new KeyVersion { Key = o.Key })],
+                    Quiet = true
+                }, cancellationToken);
+
+                if (deleted.DeleteErrors is { Count: > 0 } errors)
+                {
+                    throw new InvalidOperationException(
+                        $"Couldn't delete {errors.Count} objects under '{prefix}', e.g. {errors[0].Key}: {errors[0].Code} {errors[0].Message}");
+                }
+            }
+
+            request.ContinuationToken = page.NextContinuationToken;
+        }
+        while (page.IsTruncated == true);
     }
 }
 

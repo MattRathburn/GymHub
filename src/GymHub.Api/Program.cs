@@ -3,7 +3,9 @@ using Asp.Versioning;
 using GymHub.BuildingBlocks.Auth;
 using GymHub.BuildingBlocks.Modules;
 using GymHub.BuildingBlocks.Outbox;
+using GymHub.BuildingBlocks.Privacy;
 using GymHub.BuildingBlocks.Storage;
+using GymHub.Modules.Accounts;
 using GymHub.Modules.Billing;
 using GymHub.Modules.Discussions;
 using GymHub.Modules.Notifications;
@@ -14,7 +16,7 @@ using GymHub.Modules.Trainers;
 using GymHub.Modules.TrainingLog;
 using GymHub.ServiceDefaults;
 
-IModule[] modules = [new ProgramsModule(), new SubscriptionsModule(), new TrainersModule(), new DiscussionsModule(), new BillingModule(), new NotificationsModule(), new TrainingLogModule(), new ReviewsModule()];
+IModule[] modules = [new ProgramsModule(), new SubscriptionsModule(), new TrainersModule(), new DiscussionsModule(), new BillingModule(), new NotificationsModule(), new TrainingLogModule(), new ReviewsModule(), new AccountsModule()];
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,6 +51,7 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseDeletedAccountGuard();
 app.MapDefaultEndpoints();
 
 var api = app.NewVersionedApi("GymHub")
