@@ -41,6 +41,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17-alpine").Build();
 
+    /// <summary>The test server's admin connection string (its default database).</summary>
+    public string PostgresConnectionString => _postgres.GetConnectionString();
+
     public RecordingHandler<ProgramPublished> PublishedEvents { get; } = new();
 
     internal FakeIdentityAdmin IdentityAdmin { get; } = new();

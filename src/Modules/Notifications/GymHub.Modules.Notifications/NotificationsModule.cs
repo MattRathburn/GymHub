@@ -40,7 +40,12 @@ public sealed class NotificationsModule : IModule
         builder.Services.AddPersonalDataSource<NotificationsPersonalData>();
 
         var services = builder.Services;
-        services.Configure<NotificationsOptions>(builder.Configuration.GetSection(NotificationsOptions.SectionName));
+        services.AddOptions<NotificationsOptions>()
+            .Bind(builder.Configuration.GetSection(NotificationsOptions.SectionName))
+            // A password over a plain connection would cross the network in clear.
+            .Validate(o => string.IsNullOrEmpty(o.Smtp.UserName) || o.Smtp.UseTls,
+                "Notifications:Smtp:UseTls must be on when Notifications:Smtp:UserName is set.")
+            .ValidateOnStart();
         services.AddValidatorsFromAssemblyContaining<NotificationsModule>(includeInternalTypes: true);
         services.AddSignalR();
         services.AddSingleton<IUserIdProvider, SubUserIdProvider>();

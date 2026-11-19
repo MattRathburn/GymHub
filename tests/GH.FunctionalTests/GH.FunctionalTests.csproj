@@ -20,6 +20,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\GymHub.Api\GymHub.Api.csproj" />
+    <!-- Aliased: it has a public Program class of its own, like the API. -->
+    <ProjectReference Include="..\..\src\GymHub.MigrationService\GymHub.MigrationService.csproj" Aliases="migrations" />
   </ItemGroup>
 
   <ItemGroup>

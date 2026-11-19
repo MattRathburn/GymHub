@@ -123,6 +123,13 @@ public static class GatewaySetup
         {
             options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
             options.Authority = config.Authority;
+
+            // The issuer is the public authority; the metadata and the token endpoint may come from Keycloak's private
+            // address (see MetadataAuthority). Metadata over plain http is accepted only when it was configured so.
+            if (config.MetadataAuthority != config.Authority)
+            {
+                options.MetadataAddress = DiscoveryService.DiscoveryUrl(config.MetadataAuthority);
+            }
             options.ClientId = config.ClientId;
             options.UsePkce = true;
             options.ClientSecret = config.ClientSecret;
@@ -131,7 +138,7 @@ public static class GatewaySetup
             options.GetClaimsFromUserInfoEndpoint = config.QueryUserInfoEndpoint;
             options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
             options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
-            options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+            options.RequireHttpsMetadata = !builder.Environment.IsDevelopment() && config.MetadataAuthority == config.Authority;
 
             // Keep Keycloak's claim names ("sub", "roles") instead of the WS-* URIs.
             options.MapInboundClaims = false;

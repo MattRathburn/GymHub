@@ -39,8 +39,14 @@ public static class SpaHosting
         // Client routes (no file extension) that no endpoint or proxy route matched.
         app.MapFallback("{*path:nonfile}", (HttpContext context) =>
         {
+            // No nonce means no policy: the auth host, where only Keycloak's routes exist (/admin and the like are 404).
+            if (context.CspNonce() is not { } nonce)
+            {
+                return Results.NotFound();
+            }
+
             context.Response.Headers.CacheControl = "no-cache, no-store";
-            return Results.Content(index.Replace(NoncePlaceholder, context.CspNonce(), StringComparison.Ordinal), "text/html; charset=utf-8");
+            return Results.Content(index.Replace(NoncePlaceholder, nonce, StringComparison.Ordinal), "text/html; charset=utf-8");
         });
     }
 }

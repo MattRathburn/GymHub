@@ -27,6 +27,20 @@ public class NotificationsApiTests(ApiFactory factory) : IClassFixture<ApiFactor
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
+    [Fact]
+    public void SMTP_credentials_without_TLS_stop_the_API_from_starting()
+    {
+        using var plainText = factory.WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("Notifications:Smtp:Host", "smtp.example.test");
+            builder.UseSetting("Notifications:Smtp:UserName", "apikey");
+            builder.UseSetting("Notifications:Smtp:Password", "not-a-real-key");
+        });
+
+        var refused = Assert.Throws<Microsoft.Extensions.Options.OptionsValidationException>(() => plainText.CreateClient());
+        Assert.Contains("UseTls", refused.Message);
+    }
+
     private readonly string _trainerId = $"trainer-{Guid.NewGuid():N}";
     private readonly string _memberId = $"member-{Guid.NewGuid():N}";
 

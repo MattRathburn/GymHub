@@ -12,6 +12,7 @@ namespace GymHub.MigrationService;
 public class MigrationWorker(
     IServiceProvider serviceProvider,
     IEnumerable<ModuleDbContextRegistration> contexts,
+    IConfiguration configuration,
     IHostEnvironment hostEnvironment,
     IHostApplicationLifetime hostApplicationLifetime,
     ILogger<MigrationWorker> logger) : BackgroundService
@@ -33,6 +34,15 @@ public class MigrationWorker(
                 await EnsureDatabaseAsync(dbContext, cancellationToken);
                 await RunMigrationAsync(dbContext, cancellationToken);
                 logger.LogInformation("Migrated {Context}", registration.ContextType.Name);
+            }
+
+            // Published deployments: Keycloak's own database and role (the AppHost sets these, and Keycloak waits).
+            if (configuration["KeycloakDatabase:Password"] is { Length: > 0 } keycloakPassword)
+            {
+                var admin = (DbContext)scope.ServiceProvider.GetRequiredService(contexts.First().ContextType);
+                var name = configuration["KeycloakDatabase:Name"] ?? "keycloak";
+                await KeycloakDatabase.EnsureAsync(admin.Database.GetDbConnection(), name, keycloakPassword, cancellationToken);
+                logger.LogInformation("Keycloak database {Name} and its role are in place", name);
             }
         }
         catch (Exception ex)

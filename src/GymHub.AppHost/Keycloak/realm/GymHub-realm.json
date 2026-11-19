@@ -1,0 +1,117 @@
+{
+  "realm": "GymHub",
+  "displayName": "GymHub",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "editUsernameAllowed": false,
+  "resetPasswordAllowed": true,
+  "verifyEmail": true,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 10,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "passwordPolicy": "length(10) and notUsername and notEmail",
+  "smtpServer": {
+    "host": "${GYMHUB_SMTP_HOST}",
+    "port": "${GYMHUB_SMTP_PORT}",
+    "from": "${GYMHUB_SMTP_FROM}",
+    "fromDisplayName": "GymHub",
+    "auth": "true",
+    "user": "${GYMHUB_SMTP_USER}",
+    "password": "${GYMHUB_SMTP_PASSWORD}",
+    "starttls": "true",
+    "ssl": "false"
+  },
+  "roles": {
+    "realm": [
+      {
+        "name": "trainer",
+        "description": "Approved trainer: can author and publish programs."
+      },
+      {
+        "name": "admin",
+        "description": "Platform admin: approvals and moderation."
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "gymhub-bff",
+      "name": "GymHub BFF (Gateway)",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${GYMHUB_BFF_CLIENT_SECRET}",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "${GYMHUB_PUBLIC_ORIGIN}/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "${GYMHUB_PUBLIC_ORIGIN}/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "gymhub-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "gymhub-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "realm roles as flat roles claim",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "gymhub-api-admin",
+      "name": "GymHub API (Keycloak Admin API)",
+      "description": "Service account the API uses to grant the trainer role when an admin approves an application.",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${GYMHUB_API_ADMIN_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-gymhub-api-admin",
+      "enabled": true,
+      "serviceAccountClientId": "gymhub-api-admin",
+      "realmRoles": [
+        "default-roles-gymhub"
+      ],
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-realm"
+        ]
+      }
+    }
+  ]
+}

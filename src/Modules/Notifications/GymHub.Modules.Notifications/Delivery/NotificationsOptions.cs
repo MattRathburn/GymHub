@@ -19,7 +19,10 @@ public sealed class SmtpOptions
     public string? Host { get; set; }
 
     public int Port { get; set; } = 25;
+
+    /// <summary>STARTTLS (SendGrid: port 587). Required when <see cref="UserName"/> is set.</summary>
     public bool UseTls { get; set; }
+
     public string? UserName { get; set; }
     public string? Password { get; set; }
     public string FromAddress { get; set; } = "notifications@gymhub.local";

@@ -144,11 +144,12 @@ internal sealed class S3ObjectStorage(IAmazonS3 s3, string bucket, Protocol prot
 public static class ObjectStorageExtensions
 {
     public const string ConnectionName = "media";
-    public const string BucketName = "gymhub-media";
+    public const string DefaultBucketName = "gymhub-media";
 
     /// <summary>
     /// Registers <see cref="IObjectStorage"/> from the Aspire "media" connection string
-    /// (Endpoint=...;AccessKey=...;SecretKey=...), and creates the bucket at startup if it is missing.
+    /// (Endpoint=...;AccessKey=...;SecretKey=...[;Bucket=...][;Region=...]), and creates the bucket at startup if it
+    /// is missing. Region defaults to us-east-1; Cloudflare R2 uses "auto".
     /// </summary>
     public static IHostApplicationBuilder AddObjectStorage(this IHostApplicationBuilder builder)
     {
@@ -157,6 +158,8 @@ public static class ObjectStorageExtensions
 
         var parts = new DbConnectionStringBuilder { ConnectionString = connectionString };
         var endpoint = new Uri((string)parts["Endpoint"]);
+        var bucket = new MediaBucket(parts.TryGetValue("Bucket", out var b) && b is string { Length: > 0 } name ? name : DefaultBucketName);
+        var region = parts.TryGetValue("Region", out var r) && r is string { Length: > 0 } regionName ? regionName : "us-east-1";
 
         // Presigned URLs default to https; keep the endpoint's own scheme so local http storage works.
         var protocol = endpoint.Scheme == Uri.UriSchemeHttp ? Protocol.HTTP : Protocol.HTTPS;
@@ -167,13 +170,14 @@ public static class ObjectStorageExtensions
             new AmazonS3Config
             {
                 ServiceURL = endpoint.ToString(),
-                // Local S3 emulators (RustFS) don't do virtual-host-style bucket addressing.
+                // Local S3 emulators (RustFS) don't do virtual-host-style bucket addressing; R2 accepts both.
                 ForcePathStyle = true,
-                AuthenticationRegion = "us-east-1"
+                AuthenticationRegion = region
             });
 
         builder.Services.AddSingleton<IAmazonS3>(s3);
-        builder.Services.AddSingleton<IObjectStorage>(sp => new S3ObjectStorage(s3, BucketName, protocol, sp.GetRequiredService<TimeProvider>()));
+        builder.Services.AddSingleton(bucket);
+        builder.Services.AddSingleton<IObjectStorage>(sp => new S3ObjectStorage(s3, bucket.Name, protocol, sp.GetRequiredService<TimeProvider>()));
         builder.Services.AddHostedService<ObjectStorageInitializer>();
         builder.Services.AddHealthChecks().AddCheck<ObjectStorageHealthCheck>("object-storage");
 
@@ -181,14 +185,17 @@ public static class ObjectStorageExtensions
     }
 }
 
+/// <summary>The bucket user media lives in.</summary>
+public sealed record MediaBucket(string Name);
+
 /// <summary>The media bucket can be listed.</summary>
-public sealed class ObjectStorageHealthCheck(IAmazonS3 s3) : IHealthCheck
+public sealed class ObjectStorageHealthCheck(IAmazonS3 s3, MediaBucket bucket) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
         try
         {
-            await s3.ListObjectsV2Async(new ListObjectsV2Request { BucketName = ObjectStorageExtensions.BucketName, MaxKeys = 1 }, cancellationToken);
+            await s3.ListObjectsV2Async(new ListObjectsV2Request { BucketName = bucket.Name, MaxKeys = 1 }, cancellationToken);
             return HealthCheckResult.Healthy();
         }
         catch (Exception ex) when (ex is AmazonServiceException or HttpRequestException or TaskCanceledException)
@@ -198,22 +205,25 @@ public sealed class ObjectStorageHealthCheck(IAmazonS3 s3) : IHealthCheck
     }
 }
 
-/// <summary>Creates the media bucket at startup if it is missing.</summary>
-public sealed class ObjectStorageInitializer(IAmazonS3 s3, ILogger<ObjectStorageInitializer> logger) : IHostedService
+/// <summary>
+/// Creates the media bucket at startup if it is missing. Checks just that bucket (HeadBucket), so a token scoped to
+/// one bucket, as R2 issues them, is enough.
+/// </summary>
+public sealed class ObjectStorageInitializer(IAmazonS3 s3, MediaBucket bucket, ILogger<ObjectStorageInitializer> logger) : IHostedService
 {
-    private const string BucketName = ObjectStorageExtensions.BucketName;
-
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        var buckets = await s3.ListBucketsAsync(cancellationToken);
-
-        if (buckets.Buckets?.Any(b => b.BucketName == BucketName) == true)
+        try
         {
+            await s3.HeadBucketAsync(new HeadBucketRequest { BucketName = bucket.Name }, cancellationToken);
             return;
         }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+        }
 
-        await s3.PutBucketAsync(BucketName, cancellationToken);
-        logger.LogInformation("Created object storage bucket {Bucket}", BucketName);
+        await s3.PutBucketAsync(bucket.Name, cancellationToken);
+        logger.LogInformation("Created object storage bucket {Bucket}", bucket.Name);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

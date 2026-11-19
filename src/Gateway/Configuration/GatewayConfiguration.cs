@@ -19,6 +19,10 @@ public static class GatewayConfiguration
 
             ApiConfigs = config.GetSection("Apis").Get<ApiConfigurationRecord[]>()!
         };
+
+        gatewayConfig.MetadataAuthority = config.GetValue<string>("OpenIdConnect:MetadataAuthority") is { Length: > 0 } metadata
+            ? metadata
+            : gatewayConfig.Authority;
         
         return gatewayConfig;
     }
