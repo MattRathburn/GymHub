@@ -2,9 +2,11 @@ using GymHub.BuildingBlocks.Jobs;
 using GymHub.BuildingBlocks.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Npgsql;
 
 namespace GymHub.BuildingBlocks.Persistence;
 
@@ -20,6 +22,8 @@ public static class PersistenceExtensions
     public static IHostApplicationBuilder AddModuleDbContext<TContext>(this IHostApplicationBuilder builder, string schema)
         where TContext : ModuleDbContext
     {
+        ApplyDatabasePassword(builder.Configuration);
+
         builder.AddNpgsqlDbContext<TContext>(ConnectionName, configureDbContextOptions: options =>
         {
             options.UseNpgsql(npgsql => npgsql.MigrationsHistoryTable(HistoryRepository.DefaultTableName, schema));
@@ -29,6 +33,20 @@ public static class PersistenceExtensions
         builder.Services.TryAddSingleton<ISingletonJobLock, PostgresJobLock>();
 
         return builder;
+    }
+
+    /// <summary>
+    /// Published deployments give the API a connection string for its own role without the password, and the password
+    /// (a Key Vault secret) on its own as Database:Password; this puts them together before anything reads it.
+    /// </summary>
+    private static void ApplyDatabasePassword(IConfigurationManager configuration)
+    {
+        var key = $"ConnectionStrings:{ConnectionName}";
+
+        if (configuration["Database:Password"] is { Length: > 0 } password && configuration[key] is { Length: > 0 } connectionString)
+        {
+            configuration[key] = new NpgsqlConnectionStringBuilder(connectionString) { Password = password }.ConnectionString;
+        }
     }
 }
 

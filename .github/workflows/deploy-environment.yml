@@ -1,0 +1,82 @@
+# One environment's deployment: provision, run the migration job, then update the apps. Called by deploy.yml.
+# The GitHub environment holds that environment's settings (docs/runbook.md, "Pipeline"):
+#   variables AZURE_ENV_NAME, AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
+#   secret    AZD_INITIAL_ENVIRONMENT_CONFIG (the azd environment's config.json, with its parameter values)
+name: Deploy environment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+      AZURE_LOCATION: eastus2
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZD_INITIAL_ENVIRONMENT_CONFIG: ${{ secrets.AZD_INITIAL_ENVIRONMENT_CONFIG }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # Publishing the Gateway builds the Angular app.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - uses: Azure/setup-azd@v2
+
+      - name: Sign in to Azure (az)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign in to Azure (azd)
+        run: >
+          azd auth login
+          --client-id "$AZURE_CLIENT_ID"
+          --tenant-id "$AZURE_TENANT_ID"
+          --federated-credential-provider github
+
+      - name: Provision
+        run: azd provision --no-prompt
+
+      # Schema changes (and Keycloak's database role) land before any app runs the new code.
+      - name: Deploy and run the migration job
+        run: |
+          azd deploy gymhub-migrations --no-prompt
+          group=$(azd env get-value AZURE_RESOURCE_GROUP)
+          execution=$(az containerapp job start --name gymhub-migrations --resource-group "$group" --query name --output tsv)
+          echo "Started migration execution $execution"
+
+          for _ in $(seq 1 90); do
+            status=$(az containerapp job execution show --name gymhub-migrations --resource-group "$group" \
+              --job-execution-name "$execution" --query properties.status --output tsv)
+            case "$status" in
+              Succeeded) echo "Migrations succeeded"; exit 0 ;;
+              Failed|Stopped|Degraded) echo "::error::Migration execution $execution ended as $status"; exit 1 ;;
+            esac
+            sleep 10
+          done
+
+          echo "::error::Migration execution $execution did not finish within 15 minutes"
+          exit 1
+
+      - name: Deploy the apps
+        run: azd deploy --no-prompt

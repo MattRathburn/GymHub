@@ -44,6 +44,16 @@ public class MigrationWorker(
                 await KeycloakDatabase.EnsureAsync(admin.Database.GetDbConnection(), name, keycloakPassword, cancellationToken);
                 logger.LogInformation("Keycloak database {Name} and its role are in place", name);
             }
+
+            // Published deployments: the API's own least-privilege role, granted every module schema after migrating.
+            if (configuration["AppDatabase:Password"] is { Length: > 0 } appPassword)
+            {
+                var admin = (DbContext)scope.ServiceProvider.GetRequiredService(contexts.First().ContextType);
+                var name = configuration["AppDatabase:User"] ?? "gymhub_app";
+                var schemas = contexts.Select(c => ((ModuleDbContext)scope.ServiceProvider.GetRequiredService(c.ContextType)).Schema);
+                await AppDatabaseRole.EnsureAsync(admin.Database.GetDbConnection(), name, appPassword, schemas, cancellationToken);
+                logger.LogInformation("Database role {Name} can use the module schemas", name);
+            }
         }
         catch (Exception ex)
         {

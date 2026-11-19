@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+# The Azure Developer CLI deploys the Aspire AppHost: every resource it publishes (Container Apps, the migration job,
+# Postgres, Redis, Key Vault, Application Insights) comes from src/GymHub.AppHost/Program.cs. See docs/runbook.md.
+name: gymhub
+services:
+  app:
+    language: dotnet
+    project: ./src/GymHub.AppHost/GymHub.AppHost.csproj
+    host: containerapp

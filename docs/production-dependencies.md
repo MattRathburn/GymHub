@@ -4,7 +4,7 @@ What a published GymHub needs besides its own containers, and how to set each up
 
 ## Parameters
 
-Every value comes from an Aspire parameter. Milestone 6 keeps the secret ones in Key Vault.
+Every value comes from an Aspire parameter, stored per azd environment in `.azure/<env>/config.json` (git-ignored). On Azure, the apps read every secret one from Key Vault (`docs/runbook.md`).
 
 | Parameter | Secret | Value |
 |---|---|---|
@@ -12,8 +12,10 @@ Every value comes from an Aspire parameter. Milestone 6 keeps the secret ones in
 | `auth-host` | | The sign-in host name, e.g. `auth.gymhub.example`. It points at the Gateway (like `public-host`), which passes on only the realm's pages to Keycloak. |
 | `bff-client-secret` | yes | A long random string, shared by Keycloak's `gymhub-bff` client and the Gateway. |
 | `api-admin-client-secret` | yes | A long random string, shared by Keycloak's `gymhub-api-admin` service account and the API. |
-| `keycloak-password` | yes | Keycloak's bootstrap admin password, for the `master` realm (Aspire generates one if unset). |
-| `gymhub-password` | yes | The Postgres server admin's password. Only the API and the migration service use it. |
+| `keycloak-password` | yes | Keycloak's bootstrap admin password, for the `master` realm (azd generates one). |
+| `postgres-user` | | The Postgres server admin's name; defaults to `gymhub`. |
+| `postgres-password` | yes | The Postgres server admin's password. Only the migration job uses it. |
+| `app-db-password` | yes | A long random string: the password of the API's own `gymhub_app` role, which can only read and write the modules' tables in `gymhubdb`. |
 | `keycloak-db-password` | yes | A long random string: the password of Keycloak's own `keycloak` role, which owns only the `keycloak` database. |
 | `dataprotection-certificate` | yes | A base64-encoded PFX whose key encrypts the Gateway's Data Protection key ring in Redis. The Gateway refuses to start without it. |
 | `dataprotection-certificate-password` | yes | That PFX's password. |
@@ -23,8 +25,9 @@ Every value comes from an Aspire parameter. Milestone 6 keeps the secret ones in
 | `media` | yes | The R2 connection string (below). |
 | `media-origin` | | `https://<account-id>.r2.cloudflarestorage.com`, for the Gateway's CSP. |
 | `stripe-secret-key` / `stripe-webhook-secret` | yes | Milestone 7. |
+| `public-host-certificate` / `auth-host-certificate` | | The Container Apps managed certificates' names. Leave them empty on the first deployment (`docs/runbook.md`, "Custom domains"). |
 
-The API and Gateway also need `ForwardedHeaders:KnownNetworks` (the ingress's network) in milestone 6. Aspire switches on ASP.NET's own forwarded-headers handling when publishing, which trusts every address. The AppHost turns it off, and both apps refuse to start if it's on.
+The AppHost sets `ForwardedHeaders:KnownNetworks` to the private ranges for the API and Gateway, and `ForwardLimit` to 2 for the API (`docs/runbook.md`, "Checking the client IP"). Aspire switches on ASP.NET's own forwarded-headers handling when publishing, which trusts every address. The AppHost turns it off, and both apps refuse to start if it's on.
 
 ## Email: SendGrid
 1. Create a SendGrid account and authenticate the sending domain (the DNS records SendGrid gives you). Without that, mail lands in spam or is refused.
@@ -59,7 +62,7 @@ At startup the API checks the bucket with HeadBucket and creates it only if it's
 - **Image:** built from `src/GymHub.AppHost/Keycloak/Dockerfile`. It is Keycloak 26.5 with the `GymHub` realm (`Keycloak/realm/GymHub-realm.json`) in its import folder and Postgres as its database.
 - **Startup:** it runs `start --import-realm` in production mode, http inside, with `KC_HOSTNAME=https://<auth-host>` and `KC_PROXY_HEADERS=xforwarded`.
 - **No public endpoint:** browsers reach it through the Gateway, which answers on `auth-host` and passes on only `/realms/GymHub/**` and `/resources/**`. The API and the Gateway talk to it directly at `http://keycloak` on the environment's private network (the Gateway's `OpenIdConnect:MetadataAuthority`, the API's `Keycloak:RequireHttpsMetadata=false`); tokens are still checked against the https issuer.
-- **Database:** `keycloak` on the same Postgres server, owned by a `keycloak` role that has no access to `gymhubdb`. The migration service creates both (and applies a changed `keycloak-db-password`) before Keycloak starts; the server admin's credentials never reach Keycloak.
+- **Database:** `keycloak` on the same Postgres server, owned by a `keycloak` role with no rights in `gymhubdb`. The migration service creates both (and applies a changed `keycloak-db-password`) before Keycloak starts; the server admin's credentials never reach Keycloak. It works with Azure's admin, which isn't a superuser (it makes itself a member of the role first, as Postgres 16 requires).
 - **Realm import:** only into an empty database. Later changes to the realm file don't touch an existing realm; make them in the admin console as well, or with `kcadm`.
 - **The realm:** no users except the API's service account. It has `sslRequired: external`, email verification, brute-force protection (10 failures, then increasing waits), and a password policy (10+ characters, not the username or email). Sign-in may only return to `https://<public-host>/*`. `ProductionRealmTests` keeps it in step with the test realm's roles, clients and mappers.
 - **Admin console:** not reachable from outside: the Gateway doesn't pass on `/admin`, the admin REST API or the `master` realm. Use it from inside the environment (for example a port-forward or `kcadm` in the container, below).
