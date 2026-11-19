@@ -131,6 +131,11 @@ void AddLocalDependencies()
         .WithEndpoint(targetPort: 1025, name: "smtp")
         .WithHttpEndpoint(targetPort: 8025, name: "http");
 
+    // Aspire 13.6 serves Keycloak over HTTPS with the dev certificate by default; the issuer below is plain http.
+#pragma warning disable ASPIRECERTIFICATES001
+    keycloak.WithoutHttpsCertificate();
+#pragma warning restore ASPIRECERTIFICATES001
+
     keycloak.WithDataVolume("gymhub-keycloak")
         .WithRealmImport("./Realms")
         // Used by the realm import's smtpServer, so Keycloak sends sign-up verification and password resets to Mailpit.
@@ -185,7 +190,7 @@ void AddLocalDependencies()
 
     // Locally the Gateway proxies to the Angular dev server. A published Gateway carries the built app itself
     // (dotnet publish runs the Angular build), so there is no web app resource to deploy.
-    var webApp = builder.AddNpmApp("gh-webapp-ng", "../GH.WebApp/gh.webapp.ng")
+    var webApp = builder.AddJavaScriptApp("gh-webapp-ng", "../GH.WebApp/gh.webapp.ng", "start")
         .WithHttpEndpoint(env: "PORT");
 
     // The catch-all YARP route to the dev server (lowest priority, after the API and Gateway endpoints).

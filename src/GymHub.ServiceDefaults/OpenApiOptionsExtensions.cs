@@ -160,10 +160,10 @@ internal static class OpenApiOptionsExtensions
                     switch (context.DocumentName)
                     {
                         case "v1":
-                            targetSchema.Example = JsonNode.Parse("\"1.0\"");
+                            targetSchema.Examples = [JsonNode.Parse("\"1.0\"")!];
                             break;
                         case "v2":
-                            targetSchema.Example = JsonNode.Parse("\"2.0\"");
+                            targetSchema.Examples = [JsonNode.Parse("\"2.0\"")!];
                             break;
                     }
                 }
