@@ -149,6 +149,14 @@ public static partial class Extensions
             || section.GetSection("KnownProxies").Get<string[]>() is { Length: > 0 }
             || section.GetValue<bool>("NoProxy");
 
+        // ASP.NET's own switch (Aspire sets it when publishing) clears the trusted lists and trusts every address.
+        if (app.Configuration.GetValue<bool>("FORWARDEDHEADERS_ENABLED"))
+        {
+            throw new InvalidOperationException(
+                "ASPNETCORE_FORWARDEDHEADERS_ENABLED makes ASP.NET trust X-Forwarded-* from anyone; turn it off and list the " +
+                "trusted proxies under ForwardedHeaders instead.");
+        }
+
         if (!app.Environment.IsDevelopment() && !configured)
         {
             throw new InvalidOperationException(

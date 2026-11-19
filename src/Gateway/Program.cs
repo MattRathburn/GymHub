@@ -25,7 +25,7 @@ DiscoveryDocument disco;
 
 using (var startupLogging = LoggerFactory.Create(logging => logging.AddSimpleConsole()))
 {
-    disco = await discoService.loadDiscoveryDocument(config.Authority, startupLogging.CreateLogger("Gateway.Startup"));
+    disco = await discoService.loadDiscoveryDocument(config.MetadataAuthority, startupLogging.CreateLogger("Gateway.Startup"));
 }
 
 builder.AddSharedState();

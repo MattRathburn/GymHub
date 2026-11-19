@@ -44,6 +44,8 @@ Notification emails go to a **Mailpit** container (web UI linked from the Aspire
 
 `src/GymHub.AppHost/Realms/GH-Test-Realm-realm.json` seeds users `member`, `trainer` and `admin` with dev passwords. The file name must be `<realm>-realm.json`. Keycloak imports it only into an empty data volume (`IGNORE_EXISTING`), and Aspire copies it into that volume, so realm changes need a fresh volume.
 
+**Publish mode** (production) differs: the AppHost builds Keycloak from `Keycloak/Dockerfile` with the production realm `Keycloak/realm/GymHub-realm.json` (realm `GymHub`, no users; `ProductionRealmTests` keeps it in step with the test realm, so change both together) on a `keycloak` database owned by its own `keycloak` role (the migration service creates both; `KeycloakDatabase`), and takes SendGrid SMTP, the R2 `media` connection string (`Bucket`, `Region` optional), Stripe keys and the site/auth host names as parameters. `docs/production-dependencies.md` lists them and the first-admin steps. Aspire's `ASPNETCORE_FORWARDEDHEADERS_ENABLED` is forced off; the apps refuse to start with it on. Keycloak has no public endpoint: the Gateway answers on `auth-host` (`Gateway:AuthHost`, no Gateway CSP there) and proxies only `/realms/GymHub/**` and `/resources/**`, so `/admin` and the `master` realm stay private. The Gateway reads metadata from `http://keycloak` (`OpenIdConnect:MetadataAuthority`, else it would wait on itself at startup) and the API does too (`Keycloak:RequireHttpsMetadata=false`).
+
 ## Architecture
 
 **Request flow:** Browser → `Gateway` (same origin) → `GymHub.Api`.

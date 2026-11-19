@@ -11,8 +11,8 @@ public static class SecurityHeaders
 {
     private const string NonceItem = "gymhub.csp-nonce";
 
-    /// <summary>The CSP nonce of this request.</summary>
-    public static string CspNonce(this HttpContext context) => (string)context.Items[NonceItem]!;
+    /// <summary>The CSP nonce of this request; null on the auth host, which gets no Gateway policy.</summary>
+    public static string? CspNonce(this HttpContext context) => context.Items[NonceItem] as string;
 
     public static void UseSecurityHeaders(this WebApplication app)
     {
@@ -28,8 +28,18 @@ public static class SecurityHeaders
             app.UseHsts();
         }
 
+        // Keycloak's pages, proxied on the auth host (published deployments), send their own CSP and framing headers;
+        // a second policy would block their inline scripts.
+        var authHost = app.Configuration["Gateway:AuthHost"];
+
         app.Use(async (context, next) =>
         {
+            if (!string.IsNullOrEmpty(authHost) && string.Equals(context.Request.Host.Host, authHost, StringComparison.OrdinalIgnoreCase))
+            {
+                await next(context);
+                return;
+            }
+
             var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
             context.Items[NonceItem] = nonce;
 

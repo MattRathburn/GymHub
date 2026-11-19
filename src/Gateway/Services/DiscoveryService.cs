@@ -44,7 +44,7 @@ public sealed class KeycloakHealthCheck(IHttpClientFactory httpClientFactory, Ga
         try
         {
             using var response = await httpClientFactory.CreateClient(nameof(KeycloakHealthCheck))
-                .GetAsync(DiscoveryService.DiscoveryUrl(config.Authority), cancellationToken);
+                .GetAsync(DiscoveryService.DiscoveryUrl(config.MetadataAuthority), cancellationToken);
 
             return response.IsSuccessStatusCode
                 ? HealthCheckResult.Healthy()

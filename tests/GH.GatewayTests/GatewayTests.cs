@@ -97,6 +97,38 @@ public sealed partial class GatewayTests(GatewayFactory factory) : IClassFixture
     }
 
     [Fact]
+    public void Refuses_to_start_when_ASP_NET_would_trust_forwarded_headers_from_anyone()
+    {
+        // ASPNETCORE_FORWARDEDHEADERS_ENABLED, which Aspire sets on published projects.
+        using var trustsEveryone = factory.WithWebHostBuilder(builder => builder.UseSetting("FORWARDEDHEADERS_ENABLED", "true"));
+
+        var refused = Assert.Throws<InvalidOperationException>(() => trustsEveryone.CreateClient());
+        Assert.Contains("ASPNETCORE_FORWARDEDHEADERS_ENABLED", refused.Message);
+    }
+
+    [Fact]
+    public async Task The_auth_host_passes_on_only_the_realm_and_adds_no_policy_of_its_own()
+    {
+        var client = factory.Client();
+
+        using var realm = new HttpRequestMessage(HttpMethod.Get, "/realms/test/.well-known/openid-configuration");
+        realm.Headers.Host = GatewayFactory.AuthHost;
+        var proxied = await client.SendAsync(realm, Ct);
+        Assert.Equal(HttpStatusCode.OK, proxied.StatusCode);
+        Assert.Contains("authorization_endpoint", await proxied.Content.ReadAsStringAsync(Ct));
+        // Keycloak sends its own policy; the Gateway's would block its inline scripts.
+        Assert.False(proxied.Headers.Contains("Content-Security-Policy-Report-Only"));
+
+        // The admin console, the master realm and the SPA are not on the auth host.
+        foreach (var path in new[] { "/admin/master/console/", "/realms/master/protocol/openid-connect/token", "/programs" })
+        {
+            using var other = new HttpRequestMessage(HttpMethod.Get, path);
+            other.Headers.Host = GatewayFactory.AuthHost;
+            Assert.Equal(HttpStatusCode.NotFound, (await client.SendAsync(other, Ct)).StatusCode);
+        }
+    }
+
+    [Fact]
     public async Task Health_is_not_served_to_requests_that_came_through_a_proxy()
     {
         using var forwarded = new HttpRequestMessage(HttpMethod.Get, "/alive");

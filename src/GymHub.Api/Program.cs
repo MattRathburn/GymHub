@@ -32,8 +32,11 @@ var realm = builder.Configuration["Keycloak:Realm"]
 builder.Services.AddAuthentication()
     .AddKeycloakJwtBearer("keycloak", realm, options =>
     {
-        // Local Keycloak runs on plain http; anywhere else the metadata must come over https.
-        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+        // Local Keycloak runs on plain http; anywhere else the metadata must come over https, unless the deployment
+        // says the API reaches Keycloak on a private network (Keycloak:RequireHttpsMetadata = false, set by the
+        // published AppHost, where service discovery gives http://keycloak inside the environment). Tokens are
+        // still checked against the realm's https issuer and signing keys either way.
+        options.RequireHttpsMetadata = builder.Configuration.GetValue("Keycloak:RequireHttpsMetadata", !builder.Environment.IsDevelopment());
         options.Audience = "gymhub-api";
         options.MapInboundClaims = false;
         options.TokenValidationParameters.NameClaimType = "preferred_username";

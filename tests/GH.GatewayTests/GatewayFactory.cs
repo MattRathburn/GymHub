@@ -17,10 +17,12 @@ public sealed class GatewayFactory : WebApplicationFactory<Program>, IAsyncLifet
 {
     public const string Asset = "main-ABC123.js";
     public const int AuthPermitsPerMinute = 3;
+    public const string AuthHost = "auth.localhost";
 
     private readonly string _webRoot = Directory.CreateTempSubdirectory("gymhub-gateway-tests").FullName;
     private WebApplication? _identityProvider;
 
+    /// <summary>The stub provider's realm address: the Gateway's metadata authority.</summary>
     public string Authority { get; private set; } = "";
 
     public async ValueTask InitializeAsync()
@@ -70,10 +72,23 @@ public sealed class GatewayFactory : WebApplicationFactory<Program>, IAsyncLifet
     {
         builder.UseEnvironment("Development");
         builder.UseSetting(WebHostDefaults.WebRootKey, _webRoot);
-        builder.UseSetting("OpenIdConnect:Authority", Authority);
+        // As published: browsers use the public authority, which nothing answers here, and the Gateway reads the metadata
+        // from the provider's private address. Starting at all proves it never fetches from the public one.
+        builder.UseSetting("OpenIdConnect:Authority", "https://auth.invalid/realms/test");
+        builder.UseSetting("OpenIdConnect:MetadataAuthority", Authority);
         builder.UseSetting("OpenIdConnect:ClientId", "gymhub-bff");
         builder.UseSetting("OpenIdConnect:ClientSecret", "test-secret");
         builder.UseSetting("RateLimiting:AuthPermitsPerMinute", AuthPermitsPerMinute.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+        // As published: the Gateway also answers on the auth host and passes on only the realm's routes to Keycloak
+        // (here the stub provider).
+        builder.UseSetting("Gateway:AllowedHosts:0", "localhost");
+        builder.UseSetting("Gateway:AllowedHosts:1", AuthHost);
+        builder.UseSetting("Gateway:AuthHost", AuthHost);
+        builder.UseSetting("ReverseProxy:Routes:keycloak-realm:ClusterId", "keycloak");
+        builder.UseSetting("ReverseProxy:Routes:keycloak-realm:Match:Hosts:0", AuthHost);
+        builder.UseSetting("ReverseProxy:Routes:keycloak-realm:Match:Path", "/realms/test/{**catch-all}");
+        builder.UseSetting("ReverseProxy:Clusters:keycloak:Destinations:keycloak:Address", new Uri(Authority).GetLeftPart(UriPartial.Authority));
     }
 
     /// <summary>A client that doesn't follow redirects, over https (the cookies are Secure).</summary>
