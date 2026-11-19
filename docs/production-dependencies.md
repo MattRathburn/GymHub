@@ -59,7 +59,7 @@ Both GymHub's notifications and Keycloak's verification and password-reset email
 At startup the API checks the bucket with HeadBucket and creates it only if it's missing. A token scoped to the bucket is therefore enough, since it can't list buckets.
 
 ## Keycloak
-- **Image:** built from `src/GymHub.AppHost/Keycloak/Dockerfile`. It is Keycloak 26.5 with the `GymHub` realm (`Keycloak/realm/GymHub-realm.json`) in its import folder and Postgres as its database.
+- **Image:** built from `src/GymHub.AppHost/Keycloak/Dockerfile`. It is Keycloak 26.6 with the `GymHub` realm (`Keycloak/realm/GymHub-realm.json`) in its import folder and Postgres as its database.
 - **Startup:** it runs `start --import-realm` in production mode, http inside, with `KC_HOSTNAME=https://<auth-host>` and `KC_PROXY_HEADERS=xforwarded`.
 - **No public endpoint:** browsers reach it through the Gateway, which answers on `auth-host` and passes on only `/realms/GymHub/**` and `/resources/**`. The API and the Gateway talk to it directly at `http://keycloak` on the environment's private network (the Gateway's `OpenIdConnect:MetadataAuthority`, the API's `Keycloak:RequireHttpsMetadata=false`); tokens are still checked against the https issuer.
 - **Database:** `keycloak` on the same Postgres server, owned by a `keycloak` role with no rights in `gymhubdb`. The migration service creates both (and applies a changed `keycloak-db-password`) before Keycloak starts; the server admin's credentials never reach Keycloak. It works with Azure's admin, which isn't a superuser (it makes itself a member of the role first, as Postgres 16 requires).
