@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Azure.Monitor.OpenTelemetry.Exporter;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
@@ -97,6 +98,19 @@ public static partial class Extensions
             builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddOtlpExporter());
         }
 
+        // Application Insights (Azure): the AppHost passes its connection string to every published service.
+        var appInsights = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+
+        if (!string.IsNullOrWhiteSpace(appInsights))
+        {
+            builder.Services.Configure<OpenTelemetryLoggerOptions>(logging =>
+                logging.AddAzureMonitorLogExporter(o => o.ConnectionString = appInsights));
+            builder.Services.ConfigureOpenTelemetryMeterProvider(metrics =>
+                metrics.AddAzureMonitorMetricExporter(o => o.ConnectionString = appInsights));
+            builder.Services.ConfigureOpenTelemetryTracerProvider(tracing =>
+                tracing.AddAzureMonitorTraceExporter(o => o.ConnectionString = appInsights));
+        }
+
         return builder;
     }
 
@@ -130,6 +144,13 @@ public static partial class Extensions
             foreach (var proxy in section.GetSection("KnownProxies").Get<string[]>() ?? [])
             {
                 options.KnownProxies.Add(IPAddress.Parse(proxy));
+            }
+
+            // How many proxies to walk back through (default 1). The API behind the Gateway sees two: its own ingress
+            // and the Gateway (which sits behind the public ingress), so it needs 2 to reach the browser's address.
+            if (section.GetValue<int?>("ForwardLimit") is { } limit)
+            {
+                options.ForwardLimit = limit;
             }
         });
 

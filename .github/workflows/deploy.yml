@@ -1,0 +1,32 @@
+# Deploys main to staging, then to production once a reviewer approves the "production" GitHub environment.
+# Off until the repository variable DEPLOY_ENABLED is "true"; docs/runbook.md sets everything up.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write # OIDC sign-in to Azure, no stored Azure secret
+  contents: read
+
+# One deployment at a time; a newer push waits rather than cancelling one half-way.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    if: vars.DEPLOY_ENABLED == 'true'
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: staging
+    secrets: inherit
+
+  production:
+    needs: staging
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: production
+    secrets: inherit

@@ -1,0 +1,5 @@
+{
+  "appHost": {
+    "path": "src/GymHub.AppHost/GymHub.AppHost.csproj"
+  }
+}

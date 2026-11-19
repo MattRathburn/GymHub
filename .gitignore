@@ -266,3 +266,5 @@ FakesAssemblies/
 
 tempkey.jwk
 appsettings.Development.json
+# Azure Developer CLI environments: parameter values, secrets included. Never commit.
+.azure/
